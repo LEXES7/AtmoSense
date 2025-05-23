@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import Box from '@mui/material/Box';
 import Home from './pages/home';
 import Header from './components/Header';
+import Footer from './components/Footer';
 
 const theme = createTheme({
   palette: {
@@ -35,13 +37,20 @@ export default function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
-        <Header onSearch={handleSearch} />
-        {/* Add a container with padding-top to prevent content from being hidden under the fixed header */}
-        <div className="pt-20">
-          <Routes>
-            <Route path="/" element={<Home />} />
-          </Routes>
-        </div>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          minHeight: '100vh' 
+        }}>
+          <Header onSearch={handleSearch} />
+          {/* Add a container with padding-top to prevent content from being hidden under the fixed header */}
+          <Box component="main" className="pt-20" sx={{ flexGrow: 1 }}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+            </Routes>
+          </Box>
+          <Footer />
+        </Box>
       </BrowserRouter>
     </ThemeProvider>
   );
