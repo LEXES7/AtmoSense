@@ -3,10 +3,12 @@ import axios from 'axios';
 import { CircularProgress } from '@mui/material';
 import { LocationOn, Search, ErrorOutline, Refresh } from '@mui/icons-material';
 import WeatherCard from '../components/WeatherCard';
+import ForecastSection from '../components/ForecastSection';
 
 const Home = () => {
   const [location, setLocation] = useState(null);
   const [weather, setWeather] = useState(null);
+  const [coordinates, setCoordinates] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +33,7 @@ const Home = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
+          setCoordinates({ lat: latitude, lon: longitude });
           fetchLocationName(latitude, longitude);
           fetchWeatherData(latitude, longitude);
         },
@@ -99,6 +102,7 @@ const Home = () => {
       if (geoResponse.data && geoResponse.data.length > 0) {
         const { lat, lon, name, country } = geoResponse.data[0];
         setLocation({ name, country });
+        setCoordinates({ lat, lon });
         fetchWeatherData(lat, lon);
       } else {
         setError("Location not found. Please try another search.");
@@ -204,12 +208,15 @@ const Home = () => {
       
       <main className="max-w-4xl mx-auto">
         {weather && (
-          <WeatherCard weather={weather} />
+          <>
+            <WeatherCard weather={weather} />
+            {coordinates && <ForecastSection lat={coordinates.lat} lon={coordinates.lon} />}
+          </>
         )}
       </main>
       
       <footer className="max-w-4xl mx-auto mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-        <p>Powered by OpenWeatherMap API • {new Date().getFullYear()} © AtmoSense</p>
+        <p>Powered by OpenWeatherMap • {new Date().getFullYear()} © AtmoSense</p>
       </footer>
     </div>
   );
