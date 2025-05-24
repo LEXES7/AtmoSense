@@ -76,7 +76,7 @@ const WeatherCard = ({ weather }) => {
     return (
       <div className="w-full my-8 bg-white/10 rounded-xl p-6">
         <div className="text-center mb-4">
-          <span className="text-xl font-medium">Wind Direction Compass</span>
+          <span className="text-xl font-medium">Wind Direction </span>
         </div>
         
         <div className="compass-container flex flex-col items-center justify-center mx-auto">

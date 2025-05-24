@@ -141,6 +141,40 @@ const Home = () => {
     }
   };
 
+  // Get weather-specific background colors based on weather conditions
+  const getBackgroundGradient = () => {
+    if (!weather) return "from-blue-50 to-blue-100";
+    
+    const weatherId = weather.weather[0].id;
+    const isDark = weather.weather[0].icon?.includes('n') || false;
+    
+    if (isDark) {
+      // Night-time gradients
+      return "from-gray-900 via-blue-900/20 to-gray-900";
+    } else {
+      // Day-time gradients based on weather
+      if (weatherId === 800) { // Clear sky / Sunny
+        return "from-sky-400 via-yellow-100 to-sky-200";
+      } else if (weatherId > 800 && weatherId <= 802) { // Few/scattered clouds
+        return "from-blue-400 via-blue-200 to-blue-100";
+      } else if (weatherId > 802) { // Broken/overcast clouds
+        return "from-gray-300 via-gray-200 to-gray-100";
+      } else if (weatherId >= 700 && weatherId < 800) { // Atmosphere (fog, mist)
+        return "from-gray-400 via-gray-300 to-gray-200";
+      } else if (weatherId >= 600 && weatherId < 700) { // Snow
+        return "from-blue-100 via-blue-50 to-gray-100";
+      } else if (weatherId >= 500 && weatherId < 600) { // Rain
+        return "from-blue-500 via-blue-400 to-blue-300";
+      } else if (weatherId >= 300 && weatherId < 500) { // Drizzle
+        return "from-blue-400 via-blue-300 to-blue-200";
+      } else if (weatherId >= 200 && weatherId < 300) { // Thunderstorm
+        return "from-indigo-700 via-purple-600 to-indigo-500";
+      }
+    }
+    
+    return "from-blue-50 to-blue-100"; // Default gradient
+  };
+
   // Get weather-specific background clouds (more clouds for cloudy weather, etc.)
   const getCloudConfig = () => {
     if (!weather) return { count: 6, opacity: 0.4, dark: false };
@@ -148,7 +182,7 @@ const Home = () => {
     const weatherId = weather.weather[0].id;
     const isDark = weather.weather[0].icon?.includes('n') || false; // night icon
     
-    if (weatherId === 800) { // Clear sky
+    if (weatherId === 800) { // Clear sky / Sunny
       return { count: 2, opacity: 0.2, dark: isDark };
     } else if (weatherId > 800 && weatherId <= 802) { // Few/scattered clouds
       return { count: 5, opacity: 0.5, dark: isDark };
@@ -163,6 +197,21 @@ const Home = () => {
     }
     
     return { count: 6, opacity: 0.4, dark: isDark };
+  };
+
+  // Function to render sun effect for sunny weather
+  const renderSunEffect = () => {
+    if (!animationsReady || !weather || weather.weather[0].id !== 800 || weather.weather[0].icon?.includes('n')) {
+      return null;
+    }
+
+    return (
+      <div className="absolute top-10 right-10 md:top-20 md:right-20 z-0 pointer-events-none">
+        <div className="w-32 h-32 md:w-48 md:h-48 bg-yellow-300 rounded-full blur-xl opacity-60 animate-pulse"></div>
+        <div className="w-40 h-40 md:w-64 md:h-64 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+          bg-gradient-radial from-yellow-200 to-transparent rounded-full opacity-40"></div>
+      </div>
+    );
   };
 
   // Function to render clouds
@@ -357,10 +406,11 @@ const Home = () => {
   // Determine if we should use dark mode based on weather conditions
   const isDarkMode = weather?.weather[0]?.icon?.includes('n') || false;
   
-  // Enhanced night gradient for better star visibility
-  const gradientClass = isDarkMode 
-    ? "from-gray-900 via-blue-900/20 to-gray-900" 
-    : "from-blue-50 to-blue-100";
+  // Get the appropriate background gradient based on weather
+  const gradientClass = getBackgroundGradient();
+  
+  // Determine if it's a sunny day for text color adjustments
+  const isSunnyDay = !isDarkMode && weather?.weather[0]?.id === 800;
 
   return (
     <div className={`relative min-h-screen overflow-hidden bg-gradient-to-b ${gradientClass}`}>
@@ -414,6 +464,17 @@ const Home = () => {
           50% { transform: scale(1.2); opacity: 0.9; }
         }
         
+        /* Sun rays animation */
+        @keyframes sun-pulse {
+          0%, 100% { opacity: 0.7; transform: scale(1); }
+          50% { opacity: 0.9; transform: scale(1.05); }
+        }
+        
+        /* Radial gradient for sunny background */
+        .bg-gradient-radial {
+          background-image: radial-gradient(circle, var(--tw-gradient-stops));
+        }
+        
         .star-glow {
           z-index: 0;
         }
@@ -423,6 +484,9 @@ const Home = () => {
           z-index: 0;
         }
       `}</style>
+      
+      {/* Sun effect for sunny weather */}
+      {renderSunEffect()}
       
       {/* Night sky with stars - only renders in night mode */}
       <div className="star-container fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
@@ -442,11 +506,19 @@ const Home = () => {
               <h1 className={`text-3xl sm:text-4xl font-bold ${
                 isDarkMode 
                   ? 'text-white' 
-                  : 'bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-400'
+                  : isSunnyDay 
+                    ? 'bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-yellow-500'
+                    : 'bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-400'
               }`}>
                 AtmoSense
               </h1>
-              <p className={isDarkMode ? "text-gray-300 mt-1" : "text-gray-600 mt-1"}>
+              <p className={
+                isDarkMode 
+                  ? "text-gray-300 mt-1" 
+                  : isSunnyDay 
+                    ? "text-amber-900 mt-1" 
+                    : "text-gray-600 mt-1"
+              }>
                 {location ? `Weather in ${location.name}, ${location.country}` : 'Your Local Weather'}
               </p>
             </div>
@@ -461,12 +533,14 @@ const Home = () => {
                   className={`w-full sm:w-auto px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500
                     ${isDarkMode
                       ? 'bg-gray-800/80 border-gray-700 text-white'
-                      : 'border bg-white text-gray-800'
+                      : isSunnyDay
+                        ? 'border bg-white/80 text-gray-800'
+                        : 'border bg-white text-gray-800'
                     }`}
                 />
                 <button 
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-r-lg"
+                  className={`${isSunnyDay ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-2 rounded-r-lg`}
                 >
                   <Search fontSize="small" />
                 </button>
@@ -476,7 +550,9 @@ const Home = () => {
                 className={`flex items-center text-sm mt-2
                   ${isDarkMode 
                     ? 'text-gray-300 hover:text-blue-400' 
-                    : 'text-gray-600 hover:text-blue-600'
+                    : isSunnyDay
+                      ? 'text-amber-900 hover:text-amber-700'
+                      : 'text-gray-600 hover:text-blue-600'
                   }`}
               >
                 <LocationOn fontSize="small" className="mr-1" />
@@ -501,7 +577,13 @@ const Home = () => {
         </main>
         
         <footer className="max-w-6xl mx-auto mt-8 text-center text-sm pb-4" 
-          style={{ color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(75,85,99,0.8)' }}>
+          style={{ 
+            color: isDarkMode 
+              ? 'rgba(255,255,255,0.5)' 
+              : isSunnyDay 
+                ? 'rgba(146,64,14,0.8)' 
+                : 'rgba(75,85,99,0.8)' 
+          }}>
           <p>Powered by OpenWeatherMap • {new Date().getFullYear()} © AtmoSense</p>
         </footer>
       </div>
