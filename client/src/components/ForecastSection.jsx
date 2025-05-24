@@ -20,6 +20,10 @@ import {
   Thunderstorm,
   WaterDrop,
   Visibility,
+  Air,
+  Speed,
+  TrendingUp,
+  TrendingDown
 } from '@mui/icons-material';
 
 const ForecastSection = ({ lat, lon }) => {
@@ -135,7 +139,7 @@ const ForecastSection = ({ lat, lon }) => {
   };
   
   const getWeatherIcon = (weatherId) => {
-    const iconSize = { fontSize: 28 };
+    const iconSize = { fontSize: 36 }; // Increased size
     
     if (weatherId >= 200 && weatherId < 300) 
       return <Thunderstorm style={iconSize} className="text-purple-500" />;
@@ -200,16 +204,16 @@ const ForecastSection = ({ lat, lon }) => {
   
   if (loading) {
     return (
-      <Box className="w-full flex justify-center p-4 mt-6">
-        <CircularProgress size={30} color="primary" />
+      <Box className="w-full h-full flex justify-center items-center p-8">
+        <CircularProgress size={50} color="primary" />
       </Box>
     );
   }
   
   if (error) {
     return (
-      <Box className="w-full p-4 text-center text-red-500 mt-6">
-        <Typography>{error}</Typography>
+      <Box className="w-full p-6 text-center text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl">
+        <Typography variant="h6">{error}</Typography>
       </Box>
     );
   }
@@ -217,23 +221,25 @@ const ForecastSection = ({ lat, lon }) => {
   if (!forecast) return null;
   
   return (
-    <Box className="mt-8 mb-8">
+    <Box className="h-full flex flex-col">
       <Card 
         sx={{ 
+          flex: 1,
           backgroundColor: 'rgba(25, 118, 210, 0.15)', 
-          borderRadius: '16px',
-          backgroundImage: 'linear-gradient(to right bottom, rgba(25, 118, 210, 0.15), rgba(21, 101, 192, 0.25))'
+          borderRadius: '20px',
+          backgroundImage: 'linear-gradient(to right bottom, rgba(25, 118, 210, 0.15), rgba(21, 101, 192, 0.25))',
+          boxShadow: '0px 10px 30px rgba(0, 0, 0, 0.15)'
         }}
       >
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <CardContent sx={{ p: { xs: 3, sm: 4 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ 
             display: 'flex', 
             justifyContent: 'center', 
-            mb: 4,
+            mb: 5,
             mt: 2
           }}>
             <Typography 
-              variant="h5" 
+              variant="h4" 
               component="h2" 
               sx={{ 
                 color: 'white', 
@@ -243,11 +249,11 @@ const ForecastSection = ({ lat, lon }) => {
                 '&::after': {
                   content: '""',
                   position: 'absolute',
-                  bottom: -8,
+                  bottom: -12,
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  width: '60px',
-                  height: '3px',
+                  width: '80px',
+                  height: '4px',
                   backgroundColor: 'rgba(255, 255, 255, 0.6)',
                   borderRadius: '2px'
                 }
@@ -257,66 +263,68 @@ const ForecastSection = ({ lat, lon }) => {
             </Typography>
           </Box>
           
-          <Box className="forecast-scroll-container overflow-x-auto pb-4" sx={{ 
-            '&::-webkit-scrollbar': { height: '6px' },
+          <Box className="forecast-scroll-container overflow-x-auto pb-6" sx={{ 
+            '&::-webkit-scrollbar': { height: '8px' },
             '&::-webkit-scrollbar-track': { background: alpha(theme.palette.grey[400], 0.2), borderRadius: '10px' },
             '&::-webkit-scrollbar-thumb': { background: alpha(theme.palette.primary.main, 0.5), borderRadius: '10px' },
-            mt: 4 
+            mt: 5,
+            flex: '1 0 auto'
           }}>
             <Box 
               className="flex min-w-min"
               sx={{ 
-                justifyContent: 'center',
+                justifyContent: 'space-between',
                 width: '100%',
-                gap: { xs: '12px', sm: '16px' }
+                gap: { xs: '14px', sm: '20px' }
               }}
             >
               {forecast.map((day, index) => (
                 <Paper
                   key={index}
-                  elevation={3}
-                  className="forecast-day-card flex-shrink-0 rounded-xl overflow-hidden relative"
+                  elevation={4}
+                  className="forecast-day-card flex-shrink-0 rounded-2xl overflow-hidden relative"
                   sx={{
-                    width: { xs: '130px', sm: '150px' },
+                    width: { xs: '150px', sm: '180px' },
                     background: getWeatherCardColor(day.weatherId, index),
                     color: 'white',
                     '&:hover': {
-                      transform: 'translateY(-5px)',
-                      boxShadow: theme.shadows[8],
+                      transform: 'translateY(-8px)',
+                      boxShadow: theme.shadows[10],
                     },
                     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                   }}
                 >
-                  <Box className="p-3 flex flex-col items-center">
+                  <Box className="p-5 flex flex-col items-center">
                     {/* Day Name */}
-                    <Typography variant="subtitle1" className="font-medium mb-1">
+                    <Typography variant="h6" className="font-medium mb-1">
                       {getDayName(day.date, index)}
                     </Typography>
                     
                     {/* Date */}
-                    <Typography variant="caption" className="opacity-80 mb-3">
+                    <Typography variant="body2" className="opacity-80 mb-4">
                       {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </Typography>
                     
                     {/* Weather Icon */}
-                    <Box className="mb-1 p-1 bg-white bg-opacity-20 rounded-full">
+                    <Box className="mb-2 p-3 bg-white bg-opacity-20 rounded-full">
                       {getWeatherIcon(day.weatherId)}
                     </Box>
                     
                     {/* Temperature */}
-                    <Typography variant="h5" className="font-bold mt-2">
+                    <Typography variant="h4" className="font-bold mt-3">
                       {Math.round(day.tempMax)}°
                     </Typography>
                     
-                    <Typography variant="body2" className="opacity-75">
+                    <Typography variant="body1" className="opacity-75 mb-1 flex items-center">
+                      <TrendingDown fontSize="small" className="mr-1" />
                       {Math.round(day.tempMin)}°
                     </Typography>
                     
                     {/* Divider */}
-                    <Divider className="w-3/4 my-2 bg-white bg-opacity-30" />
+                    <Divider className="w-3/4 my-3 bg-white bg-opacity-30" />
                     
                     {/* Condition Description */}
-                    <Typography variant="caption" className="text-center opacity-90 mt-1">
+                    <Typography variant="body2" className="text-center opacity-90 mt-1">
                       {getWeatherDesc(day.weatherId, day.pop)}
                     </Typography>
                   </Box>
@@ -325,28 +333,33 @@ const ForecastSection = ({ lat, lon }) => {
             </Box>
           </Box>
           
-          {/* Additional Weather Details */}
-          <Box className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Additional Weather Details - Enhanced with more visual elements */}
+          <Box className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="weather-details-card rounded-xl" sx={{ 
-              backgroundColor: 'rgba(30, 136, 229, 0.15)',
-              backdropFilter: 'blur(10px)'
+              backgroundColor: 'rgba(30, 136, 229, 0.20)',
+              backdropFilter: 'blur(10px)',
+              transition: 'transform 0.3s',
+              '&:hover': {
+                transform: 'translateY(-5px)'
+              }
             }}>
-              <CardContent>
-                <Typography variant="h6" className="font-medium mb-3" sx={{ color: 'white' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h5" className="font-medium mb-4" sx={{ color: 'white' }}>
                   💧 Humidity & Precipitation
                 </Typography>
-                <Box className="grid grid-cols-2 gap-4">
+                <Box className="grid grid-cols-3 gap-4">
                   {forecast.slice(0, 3).map((day, index) => (
-                    <Box key={index} className="flex items-center">
-                      <Box className="text-xs font-medium w-16" sx={{ color: alpha('#fff', 0.9) }}>
+                    <Box key={index} className="flex flex-col items-center p-3 bg-white/10 rounded-lg">
+                      <Box className="text-sm font-medium" sx={{ color: alpha('#fff', 0.9) }}>
                         {getDayName(day.date, index)}
                       </Box>
-                      <Box className="ml-2">
-                        <Typography variant="body2" sx={{ color: alpha('#fff', 0.9) }}>
-                          Humidity: {day.humidity}%
+                      <Box className="mt-3 flex flex-col items-center">
+                        <WaterDrop className="text-blue-300 mb-1" />
+                        <Typography variant="body1" sx={{ color: alpha('#fff', 0.9) }}>
+                          {day.humidity}%
                         </Typography>
-                        <Typography variant="body2" sx={{ color: alpha('#fff', 0.9) }}>
-                          Precip: {Math.round(day.pop * 100)}%
+                        <Typography variant="caption" sx={{ color: alpha('#fff', 0.7) }}>
+                          Rain: {Math.round(day.pop * 100)}%
                         </Typography>
                       </Box>
                     </Box>
@@ -356,22 +369,29 @@ const ForecastSection = ({ lat, lon }) => {
             </Card>
             
             <Card className="weather-details-card rounded-xl" sx={{ 
-              backgroundColor: 'rgba(30, 136, 229, 0.15)',
-              backdropFilter: 'blur(10px)'
+              backgroundColor: 'rgba(30, 136, 229, 0.20)',
+              backdropFilter: 'blur(10px)',
+              transition: 'transform 0.3s',
+              '&:hover': {
+                transform: 'translateY(-5px)'
+              }
             }}>
-              <CardContent>
-                <Typography variant="h6" className="font-medium mb-3" sx={{ color: 'white' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h5" className="font-medium mb-4" sx={{ color: 'white' }}>
                   💨 Wind Conditions
                 </Typography>
-                <Box className="grid grid-cols-2 gap-4">
+                <Box className="grid grid-cols-3 gap-4">
                   {forecast.slice(0, 3).map((day, index) => (
-                    <Box key={index} className="flex items-center">
-                      <Box className="text-xs font-medium w-16" sx={{ color: alpha('#fff', 0.9) }}>
+                    <Box key={index} className="flex flex-col items-center p-3 bg-white/10 rounded-lg">
+                      <Box className="text-sm font-medium" sx={{ color: alpha('#fff', 0.9) }}>
                         {getDayName(day.date, index)}
                       </Box>
-                      <Typography variant="body2" sx={{ color: alpha('#fff', 0.9) }}>
-                        {(day.windSpeed * 3.6).toFixed(1)} km/h
-                      </Typography>
+                      <Box className="mt-3 flex flex-col items-center">
+                        <Air className="text-cyan-300 mb-1" />
+                        <Typography variant="body1" sx={{ color: alpha('#fff', 0.9) }}>
+                          {(day.windSpeed * 3.6).toFixed(1)} km/h
+                        </Typography>
+                      </Box>
                     </Box>
                   ))}
                 </Box>
@@ -379,8 +399,53 @@ const ForecastSection = ({ lat, lon }) => {
             </Card>
           </Box>
           
-          <Box className="mt-4 text-center">
-            <Typography variant="caption" sx={{ color: alpha('#fff', 0.7) }}>
+          {/* Additional data visualization element */}
+          <Card className="weather-details-card rounded-xl mt-6" sx={{ 
+            backgroundColor: 'rgba(30, 136, 229, 0.20)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h5" className="font-medium mb-4" sx={{ color: 'white' }}>
+                Temperature Trend
+              </Typography>
+              <Box className="relative h-[100px] flex items-end justify-between px-4">
+                {/* Simple temperature visualization bars */}
+                {forecast.slice(0, 7).map((day, index) => (
+                  <Box key={index} className="flex flex-col items-center">
+                    <Typography variant="caption" sx={{ color: 'white', mb: 1 }}>
+                      {Math.round(day.tempMax)}°
+                    </Typography>
+                    <Box 
+                      sx={{ 
+                        width: '20px', 
+                        backgroundColor: alpha('#fff', 0.3),
+                        height: `${(day.tempMax / 40) * 100}%`,
+                        minHeight: '10px',
+                        borderTopLeftRadius: '3px',
+                        borderTopRightRadius: '3px',
+                        position: 'relative'
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ color: 'white', mt: 1 }}>
+                      {getDayName(day.date, index).substring(0, 3)}
+                    </Typography>
+                  </Box>
+                ))}
+                {/* Baseline */}
+                <Box sx={{ 
+                  position: 'absolute', 
+                  bottom: '24px', 
+                  left: 0, 
+                  right: 0, 
+                  height: '1px', 
+                  backgroundColor: alpha('#fff', 0.2) 
+                }} />
+              </Box>
+            </CardContent>
+          </Card>
+          
+          <Box className="mt-6 text-center">
+            <Typography variant="body2" sx={{ color: alpha('#fff', 0.8) }}>
               Data updated {new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
             </Typography>
           </Box>
