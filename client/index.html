@@ -2,12 +2,70 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <meta name="theme-color" content="#3b82f6" />
+    
+    <title>AtmoSense | Real time Weather details</title>
+    <meta name="description" content="Get accurate real-time weather forecasts, conditions, and forecasts with AtmoSense's beautiful weather visualization." />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://atmosense.app/" />
+    <meta property="og:title" content="AtmoSense | Real-time Weather Forecasts" />
+    <meta property="og:description" content="Beautiful weather forecasting with accurate data visualization." />
+    <meta property="og:image" content="/og-image.jpg" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://atmosense.app/" />
+    <meta property="twitter:title" content="AtmoSense | Real-time Weather Forecasts" />
+    <meta property="twitter:description" content="Beautiful weather forecasting with accurate data visualization." />
+    <meta property="twitter:image" content="/og-image.jpg" />
+    
+    <!-- Preconnect to API domain for faster data fetching -->
+    <link rel="preconnect" href="https://api.openweathermap.org" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- PWA support -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Prevent flash of unstyled content -->
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(to bottom, #f0f9ff, #e0f2fe);
+        min-height: 100vh;
+      }
+      
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: linear-gradient(to bottom, #0f172a, #1e293b);
+          color: #f8fafc;
+        }
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="padding: 2rem; text-align: center;">
+        <h1>AtmoSense requires JavaScript</h1>
+        <p>Please enable JavaScript to use this application.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
