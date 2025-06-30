@@ -201,7 +201,7 @@ const ForecastSection = ({ lat, lon }) => {
   if (loading) {
     return (
       <Card sx={{ 
-        backgroundColor: 'rgba(25, 118, 210, 0.15)', 
+        backgroundColor: '#1976d2',
         borderRadius: '20px',
         height: '400px'
       }}>
@@ -211,7 +211,7 @@ const ForecastSection = ({ lat, lon }) => {
           justifyContent: 'center', 
           alignItems: 'center' 
         }}>
-          <CircularProgress size={50} color="primary" />
+          <CircularProgress size={50} color="inherit" sx={{ color: 'white' }} />
         </CardContent>
       </Card>
     );
@@ -220,7 +220,7 @@ const ForecastSection = ({ lat, lon }) => {
   if (error) {
     return (
       <Card sx={{ 
-        backgroundColor: 'rgba(244, 67, 54, 0.15)', 
+        backgroundColor: '#d32f2f',
         borderRadius: '20px',
         height: '400px'
       }}>
@@ -230,7 +230,7 @@ const ForecastSection = ({ lat, lon }) => {
           justifyContent: 'center', 
           alignItems: 'center' 
         }}>
-          <Typography variant="h6" color="error">{error}</Typography>
+          <Typography variant="h6" color="white">{error}</Typography>
         </CardContent>
       </Card>
     );
@@ -243,9 +243,9 @@ const ForecastSection = ({ lat, lon }) => {
       {/* 7-Day Forecast Card */}
       <Card 
         sx={{ 
-          backgroundColor: 'rgba(25, 118, 210, 0.15)', 
+          backgroundColor: '#1976d2',
           borderRadius: '20px',
-          backgroundImage: 'linear-gradient(to right bottom, rgba(25, 118, 210, 0.15), rgba(21, 101, 192, 0.25))',
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
           boxShadow: '0px 10px 30px rgba(0, 0, 0, 0.15)',
           overflow: 'hidden'
         }}
@@ -390,8 +390,8 @@ const ForecastSection = ({ lat, lon }) => {
         gap: 3
       }}>
         <Card sx={{ 
-          backgroundColor: 'rgba(30, 136, 229, 0.20)',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: '#1976d2',
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
           borderRadius: '20px',
           boxShadow: '0px 8px 25px rgba(0, 0, 0, 0.15)',
           transition: 'transform 0.3s',
@@ -408,17 +408,17 @@ const ForecastSection = ({ lat, lon }) => {
                 <Box key={index} sx={{ 
                   textAlign: 'center', 
                   p: 2, 
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)', 
                   borderRadius: '8px' 
                 }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
                     {getDayName(day.date, index)}
                   </Typography>
                   <WaterDrop sx={{ color: '#81C784', mb: 1, fontSize: 20 }} />
                   <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>
                     {day.humidity}%
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                     Rain: {Math.round(day.pop * 100)}%
                   </Typography>
                 </Box>
@@ -428,8 +428,8 @@ const ForecastSection = ({ lat, lon }) => {
         </Card>
         
         <Card sx={{ 
-          backgroundColor: 'rgba(30, 136, 229, 0.20)',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: '#1976d2',
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
           borderRadius: '20px',
           boxShadow: '0px 8px 25px rgba(0, 0, 0, 0.15)',
           transition: 'transform 0.3s',
@@ -446,17 +446,17 @@ const ForecastSection = ({ lat, lon }) => {
                 <Box key={index} sx={{ 
                   textAlign: 'center', 
                   p: 2, 
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)', 
                   borderRadius: '8px' 
                 }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
                     {getDayName(day.date, index)}
                   </Typography>
                   <Air sx={{ color: '#4FC3F7', mb: 1, fontSize: 20 }} />
                   <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>
                     {(day.windSpeed * 3.6).toFixed(1)}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                     km/h
                   </Typography>
                 </Box>
@@ -469,8 +469,8 @@ const ForecastSection = ({ lat, lon }) => {
       {/* Air Conditions Card - Moved from WeatherCard */}
       {currentWeather && (
         <Card sx={{ 
-  backgroundColor: 'rgba(30, 136, 229, 0.20)',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: '#1976d2',
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
           borderRadius: '20px',
           boxShadow: '0px 8px 25px rgba(0, 0, 0, 0.15)',
           transition: 'transform 0.3s',
@@ -485,7 +485,7 @@ const ForecastSection = ({ lat, lon }) => {
               fontWeight: 600,
               fontSize: '1.25rem'
             }}>
-              Air Conditions
+              🌬️ Air Conditions
             </Typography>
             <Box sx={{ 
               display: 'grid', 
@@ -495,28 +495,28 @@ const ForecastSection = ({ lat, lon }) => {
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                backgroundColor: 'rgba(33, 150, 243, 0.1)', 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', 
                 p: 3, 
                 borderRadius: '12px',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  backgroundColor: 'rgba(33, 150, 243, 0.15)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
                   transform: 'translateY(-1px)'
                 }
               }}>
                 <Box sx={{ 
                   p: 2, 
                   borderRadius: '50%', 
-                  backgroundColor: 'rgba(33, 150, 243, 0.2)', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
                   mr: 3,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <WaterDrop sx={{ color: '#2196F3', fontSize: 24 }} />
+                  <WaterDrop sx={{ color: 'white', fontSize: 24 }} />
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5, opacity: 0.8 }}>
                     Humidity
                   </Typography>
                   <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
@@ -528,28 +528,28 @@ const ForecastSection = ({ lat, lon }) => {
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                backgroundColor: 'rgba(0, 188, 212, 0.1)', 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', 
                 p: 3, 
                 borderRadius: '12px',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  backgroundColor: 'rgba(0, 188, 212, 0.15)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
                   transform: 'translateY(-1px)'
                 }
               }}>
                 <Box sx={{ 
                   p: 2, 
                   borderRadius: '50%', 
-                  backgroundColor: 'rgba(0, 188, 212, 0.2)', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
                   mr: 3,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Air sx={{ color: '#00BCD4', fontSize: 24 }} />
+                  <Air sx={{ color: 'white', fontSize: 24 }} />
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5, opacity: 0.8 }}>
                     Pressure
                   </Typography>
                   <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
@@ -561,28 +561,28 @@ const ForecastSection = ({ lat, lon }) => {
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                backgroundColor: 'rgba(255, 193, 7, 0.1)', 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', 
                 p: 3, 
                 borderRadius: '12px',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 193, 7, 0.15)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
                   transform: 'translateY(-1px)'
                 }
               }}>
                 <Box sx={{ 
                   p: 2, 
                   borderRadius: '50%', 
-                  backgroundColor: 'rgba(255, 193, 7, 0.2)', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
                   mr: 3,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Compress sx={{ color: '#FFC107', fontSize: 24 }} />
+                  <Compress sx={{ color: 'white', fontSize: 24 }} />
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5, opacity: 0.8 }}>
                     Pressure Change
                   </Typography>
                   <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
@@ -594,28 +594,28 @@ const ForecastSection = ({ lat, lon }) => {
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                backgroundColor: 'rgba(156, 39, 176, 0.1)', 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', 
                 p: 3, 
                 borderRadius: '12px',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  backgroundColor: 'rgba(156, 39, 176, 0.15)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
                   transform: 'translateY(-1px)'
                 }
               }}>
                 <Box sx={{ 
                   p: 2, 
                   borderRadius: '50%', 
-                  backgroundColor: 'rgba(156, 39, 176, 0.2)', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)', 
                   mr: 3,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Navigation sx={{ color: '#9C27B0', fontSize: 24 }} />
+                  <Navigation sx={{ color: 'white', fontSize: 24 }} />
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5, opacity: 0.8 }}>
                     Wind Direction
                   </Typography>
                   <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>

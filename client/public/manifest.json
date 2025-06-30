@@ -1,0 +1,16 @@
+{
+  "name": "AtmoSense",
+  "short_name": "AtmoSense",
+  "description": "Real-time weather forecasts and conditions",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1976d2",
+  "theme_color": "#1976d2",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml"
+    }
+  ]
+}

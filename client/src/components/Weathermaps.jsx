@@ -22,8 +22,8 @@ import {
 } from '@mui/icons-material';
 
 const WeatherMaps = () => {
-  const [selectedLayer, setSelectedLayer] = useState('precipitation_new');
-  const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 });
+  const [selectedLayer, setSelectedLayer] = useState('precipitation');
+  const [mapCenter, setMapCenter] = useState({ lat: 6.8574, lng: 80.0260 });
   const [zoomLevel, setZoomLevel] = useState(6);
   const [opacity, setOpacity] = useState(0.9);
   const [userLocation, setUserLocation] = useState(null);
@@ -38,6 +38,7 @@ const WeatherMaps = () => {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const locationTimeoutRef = useRef(null);
+  const locationFetched = useRef(false);
   
   const API_KEY = typeof import.meta !== 'undefined' 
     ? import.meta.env.VITE_WEATHER_API_KEY 
@@ -61,7 +62,7 @@ const WeatherMaps = () => {
       ]
     },
     { 
-      id: 'clouds_new', 
+      id: 'clouds', 
       name: 'Clouds', 
       icon: <Cloud className="text-gray-500" />,
       description: 'Cloud coverage percentage',
@@ -77,7 +78,7 @@ const WeatherMaps = () => {
       ]
     },
     { 
-      id: 'pressure_new', 
+      id: 'pressure', 
       name: 'Pressure', 
       icon: <Thermostat className="text-purple-500" />,
       description: 'Sea level atmospheric pressure',
@@ -94,7 +95,7 @@ const WeatherMaps = () => {
       ]
     },
     { 
-      id: 'wind_new', 
+      id: 'wind', 
       name: 'Wind Speed', 
       icon: <Air className="text-green-500" />,
       description: 'Wind speed at 10m height',
@@ -110,7 +111,7 @@ const WeatherMaps = () => {
       ]
     },
     { 
-      id: 'temp_new', 
+      id: 'temp', 
       name: 'Temperature', 
       icon: <WbSunny className="text-red-500" />,
       description: 'Air temperature 2m above ground',
@@ -142,14 +143,12 @@ const WeatherMaps = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [updateMapDimensions]);
 
-  // Fixed getUserLocation with better error handling
   const getUserLocation = useCallback(() => {
-    if (loading) return; // Prevent multiple simultaneous requests
+    if (loading || locationFetched.current) return;
     
     setLoading(true);
     setLocationError(null);
     
-    // Clear any existing timeout
     if (locationTimeoutRef.current) {
       clearTimeout(locationTimeoutRef.current);
     }
@@ -161,22 +160,22 @@ const WeatherMaps = () => {
     }
 
     const options = {
-      enableHighAccuracy: false, // Changed to false to avoid CoreLocation errors
-      timeout: 10000, // Reduced timeout
-      maximumAge: 60000 // Allow cached position for 1 minute
+      enableHighAccuracy: false,
+      timeout: 8000,
+      maximumAge: 300000
     };
 
-    // Set a backup timeout
     locationTimeoutRef.current = setTimeout(() => {
       setLocationError('Location request timed out');
       setLoading(false);
-    }, 12000);
+    }, 10000);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (locationTimeoutRef.current) {
           clearTimeout(locationTimeoutRef.current);
         }
+        locationFetched.current = true;
         const { latitude, longitude } = position.coords;
         setUserLocation({ lat: latitude, lng: longitude });
         setMapCenter({ lat: latitude, lng: longitude });
@@ -210,7 +209,6 @@ const WeatherMaps = () => {
     );
   }, [loading]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (locationTimeoutRef.current) {
@@ -231,9 +229,7 @@ const WeatherMaps = () => {
     }
   };
 
-  // Fixed weather tile URL - ensure integer zoom levels only
   const getWeatherTileUrl = (layer, z, x, y) => {
-    // Ensure zoom level is integer
     const intZoom = Math.floor(z);
     const servers = ['tile', 'a.tile', 'b.tile', 'c.tile'];
     const server = servers[Math.abs(x + y) % servers.length];
@@ -244,7 +240,6 @@ const WeatherMaps = () => {
   const generateTiles = useCallback(() => {
     const tiles = [];
     const tileSize = 256;
-    // Ensure integer zoom level
     const intZoomLevel = Math.floor(zoomLevel);
     const zoomPow = Math.pow(2, intZoomLevel);
     
@@ -270,7 +265,7 @@ const WeatherMaps = () => {
           tiles.push({
             x: tileX,
             y: tileY,
-            z: intZoomLevel, // Use integer zoom
+            z: intZoomLevel,
             pixelX,
             pixelY,
             key: `${intZoomLevel}-${tileX}-${tileY}`
@@ -305,7 +300,7 @@ const WeatherMaps = () => {
     const deltaX = clientX - dragStart.x;
     const deltaY = clientY - dragStart.y;
     
-    const scale = Math.pow(2, Math.floor(zoomLevel)); // Use integer zoom
+    const scale = Math.pow(2, Math.floor(zoomLevel));
     const pixelsPerDegree = (mapDimensions.width * scale) / 360;
     
     const deltaLat = -(deltaY / pixelsPerDegree);
@@ -327,7 +322,7 @@ const WeatherMaps = () => {
   const zoomOut = () => setZoomLevel(prev => Math.max(2, Math.floor(prev) - 1));
 
   const handleWheel = useCallback((e) => {
-    const delta = e.deltaY > 0 ? -1 : 1; // Only integer increments
+    const delta = e.deltaY > 0 ? -1 : 1;
     setZoomLevel(prev => Math.max(2, Math.min(12, Math.floor(prev) + delta)));
   }, []);
 
@@ -372,7 +367,6 @@ const WeatherMaps = () => {
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Add native wheel event listener to handle preventDefault properly
   useEffect(() => {
     const mapElement = mapRef.current;
     if (!mapElement) return;
@@ -385,7 +379,6 @@ const WeatherMaps = () => {
       setZoomLevel(prev => Math.max(2, Math.min(12, Math.floor(prev) + delta)));
     };
 
-    // Add native event listener with non-passive option
     mapElement.addEventListener('wheel', handleNativeWheel, { passive: false });
 
     return () => {
@@ -505,7 +498,6 @@ const WeatherMaps = () => {
                       <p className="text-white/80 text-sm">{currentLayer?.description}</p>
                     </div>
                   </div>
-                 
                 </div>
               </div>
 
@@ -519,7 +511,6 @@ const WeatherMaps = () => {
                 onDoubleClick={handleDoubleClick}
                 style={{ touchAction: 'none' }}
               >
-                {/* Base Map Layer */}
                 <div className="absolute inset-0 z-10">
                   {tiles.map((tile) => (
                     <img
@@ -543,7 +534,6 @@ const WeatherMaps = () => {
                   ))}
                 </div>
 
-                {/* Weather Layer */}
                 {showWeatherLayer && (
                   <div 
                     className="absolute inset-0 z-20 pointer-events-none"
@@ -573,7 +563,6 @@ const WeatherMaps = () => {
                           }));
                         }}
                         onError={(e) => {
-                          // Only log error once per tile type to reduce console spam
                           if (!e.target.dataset.errorLogged) {
                             console.warn(`Weather tile failed for ${selectedLayer} at zoom ${tile.z}:`, getWeatherTileUrl(selectedLayer, tile.z, tile.x, tile.y));
                             e.target.dataset.errorLogged = 'true';
@@ -773,7 +762,6 @@ const WeatherMaps = () => {
         </div>
       </div>
 
-      {/* Fixed CSS styles */}
       <style>{`
         .opacity-slider {
           background: linear-gradient(to right, #e5e7eb, #3b82f6);

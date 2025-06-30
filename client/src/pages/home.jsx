@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { CircularProgress } from '@mui/material';
 import { LocationOn, Search, ErrorOutline, Refresh } from '@mui/icons-material';
 import WeatherCard from '../components/WeatherCard';
 import ForecastSection from '../components/ForecastSection';
+import cloudsImage from '../assets/clouds.png';
 
 const Home = () => {
   const [location, setLocation] = useState(null);
@@ -17,6 +18,8 @@ const Home = () => {
   const animationRendered = useRef(false);
   const locationFetched = useRef(false);
   const abortControllerRef = useRef(null);
+  const cloudsRef = useRef([]);
+  const starsRef = useRef([]);
   
   const API_KEY = typeof import.meta !== 'undefined' 
     ? import.meta.env.VITE_WEATHER_API_KEY 
@@ -183,7 +186,8 @@ const Home = () => {
     }
   };
 
-  const getBackgroundGradient = () => {
+  // Memoize background gradient to prevent recalculation on every render
+  const gradientClass = useMemo(() => {
     if (!weather) return "from-blue-50 to-blue-100";
     
     const weatherId = weather.weather[0].id;
@@ -212,9 +216,10 @@ const Home = () => {
     }
     
     return "from-blue-50 to-blue-100";
-  };
+  }, [weather]);
 
-  const getCloudConfig = () => {
+  // Memoize cloud configuration to prevent recalculation
+  const cloudConfig = useMemo(() => {
     if (!weather) return { count: 6, opacity: 0.4, dark: false };
     
     const weatherId = weather.weather[0].id;
@@ -235,7 +240,67 @@ const Home = () => {
     }
     
     return { count: 6, opacity: 0.4, dark: isDark };
-  };
+  }, [weather]);
+
+  // Generate clouds only when weather changes, not on every render
+  const clouds = useMemo(() => {
+    if (!animationsReady || !weather) return [];
+    
+    // If we already have clouds for this weather, return them
+    if (cloudsRef.current.length > 0 && cloudsRef.current[0].weatherId === weather.weather[0].id) {
+      return cloudsRef.current;
+    }
+    
+    const cloudCount = cloudConfig.count;
+    const newClouds = Array(cloudCount).fill().map((_, i) => ({
+      id: `cloud-${i}-${weather.id}`,
+      weatherId: weather.weather[0].id,
+      size: Math.random() * 150 + 100,
+      duration: Math.random() * 80 + 60,
+      delay: Math.random() * -40,
+      opacity: cloudConfig.opacity * (0.7 + Math.random() * 0.5),
+      top: 10 + Math.random() * 60,
+      hasRain: cloudConfig.rain && Math.random() > 0.5
+    }));
+    
+    cloudsRef.current = newClouds;
+    return newClouds;
+  }, [animationsReady, weather, cloudConfig]);
+
+  // Generate stars only when weather changes
+  const stars = useMemo(() => {
+    if (!animationsReady || !weather || !weather.weather[0].icon?.includes('n')) return [];
+    
+    const weatherId = weather.weather[0].id;
+    let starCount = 300;
+    
+    if (weatherId >= 801 && weatherId <= 802) starCount = 200;
+    else if (weatherId >= 803 && weatherId <= 804) starCount = 100;
+    else if (weatherId >= 700 && weatherId < 800) starCount = 60;
+    else if (weatherId >= 200 && weatherId < 700) starCount = 40;
+    
+    // If we already have stars for this weather, return them
+    const currentKey = `${weather.id}-${weatherId}`;
+    if (starsRef.current.length > 0 && starsRef.current[0].weatherKey === currentKey) {
+      return starsRef.current;
+    }
+    
+    const newStars = Array(starCount).fill().map((_, i) => ({
+      id: `star-${currentKey}-${i}`,
+      weatherKey: currentKey,
+      size: Math.random() * 2 + 1,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      animationType: Math.floor(Math.random() * 4),
+      opacity: 0.1 + Math.random() * 0.7,
+      hasGlow: Math.random() > 0.9,
+      animationDelay: Math.random() * 10,
+      animationDuration: 2 + Math.random() * 8
+    }));
+    
+    starsRef.current = newStars;
+    return newStars;
+  }, [animationsReady, weather]);
 
   const renderSunEffect = () => {
     if (!animationsReady || !weather || weather.weather[0].id !== 800 || weather.weather[0].icon?.includes('n')) {
@@ -252,128 +317,66 @@ const Home = () => {
   };
 
   const renderClouds = () => {
-    if (!animationsReady) return null;
-    
-    const config = getCloudConfig();
-    const cloudCount = config.count;
-    const cloudOpacity = config.opacity;
-    const isDark = config.dark;
-    
-    const cloudShapes = [
-      'M0,20 Q5,10 10,20 T20,20 T30,20 T40,20 T50,20 T60,20 T70,20 Q75,10 80,20 L80,40 L0,40 Z',
-      'M0,25 Q10,5 20,25 T40,25 T60,25 Q70,5 80,25 L80,50 L0,50 Z',
-      'M0,15 Q20,0 40,15 T80,15 L80,35 L0,35 Z'
-    ];
-    
-    return Array(cloudCount).fill().map((_, i) => {
-      const size = Math.random() * 150 + 100;
-      const duration = Math.random() * 80 + 60;
-      const delay = Math.random() * -40;
-      const shape = cloudShapes[Math.floor(Math.random() * cloudShapes.length)];
-      const cloudOpacityVariation = cloudOpacity * (0.7 + Math.random() * 0.5);
-      
-      return (
-        <div 
-          key={`cloud-${i}-${weather?.id || 'init'}`}
-          className="absolute"
-          style={{
-            width: `${size}px`,
-            height: `${size/2}px`,
-            top: `${10 + Math.random() * 60}%`,
-            left: `-${size}px`,
-            opacity: cloudOpacityVariation,
-            animation: `float-cloud ${duration}s linear ${delay}s infinite`,
-            zIndex: 1
-          }}
-        >
-          <svg 
-            viewBox="0 0 80 50" 
-            width="100%" 
-            height="100%" 
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path 
-              d={shape}
-              fill={isDark ? "#334155" : "white"}
-              filter={`blur(${Math.min(size/10, 8)}px)`}
-            />
-          </svg>
-          
-          {config.rain && Math.random() > 0.5 && (
-            <div className="raindrops absolute inset-0 overflow-hidden opacity-70">
-              {Array(5).fill().map((_, j) => (
-                <div 
-                  key={`raindrop-${j}`}
-                  className="absolute w-0.5 bg-blue-400 rounded-full"
-                  style={{
-                    height: `${10 + Math.random() * 15}px`,
-                    left: `${20 + Math.random() * 60}%`,
-                    top: `${size/2}px`,
-                    animation: `rainfall ${1 + Math.random()}s linear ${Math.random()}s infinite`
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    });
+    return clouds.map((cloud) => (
+      <div 
+        key={cloud.id}
+        className="cloud-float absolute pointer-events-none"
+        style={{
+          width: `${cloud.size}px`,
+          height: `${cloud.size}px`,
+          top: `${cloud.top}%`,
+          left: `-${cloud.size}px`,
+          opacity: cloud.opacity,
+          animation: `float-cloud ${cloud.duration}s linear ${cloud.delay}s infinite`,
+          zIndex: 1,
+          backgroundImage: `url(${cloudsImage})`,
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          filter: cloudConfig.dark ? 'brightness(0.3) contrast(1.2)' : 'brightness(1) contrast(1)',
+        }}
+      >
+        {cloud.hasRain && (
+          <div className="raindrops absolute inset-0 overflow-hidden opacity-70">
+            {Array(5).fill().map((_, j) => (
+              <div 
+                key={`raindrop-${j}`}
+                className="absolute w-0.5 bg-blue-400 rounded-full"
+                style={{
+                  height: `${10 + Math.random() * 15}px`,
+                  left: `${20 + Math.random() * 60}%`,
+                  top: `${cloud.size/2}px`,
+                  animation: `rainfall ${1 + Math.random()}s linear ${Math.random()}s infinite`
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    ));
   };
 
   const renderStars = () => {
-    if (!animationsReady || !weather || !weather.weather[0].icon?.includes('n')) return null;
-    
-    const weatherId = weather.weather[0].id;
-    let starCount = 300;
-    
-    if (weatherId >= 801 && weatherId <= 802) starCount = 200;
-    else if (weatherId >= 803 && weatherId <= 804) starCount = 100;
-    else if (weatherId >= 700 && weatherId < 800) starCount = 60;
-    else if (weatherId >= 200 && weatherId < 700) starCount = 40;
-    
-    const starsKey = `${weather.id}-${weatherId}-${Math.round(weather.main.temp)}`;
-    
-    return Array(starCount).fill().map((_, i) => {
-      const size = Math.random() * 2 + 1;
-      const x = Math.random() * 100;
-      const y = Math.random() * 100;
-      
-      const starType = Math.floor(Math.random() * 4);
-      const baseOpacity = 0.1 + Math.random() * 0.7;
-      
-      let animationClass = '';
-      switch(starType) {
-        case 0:
-          animationClass = 'twinkle-1';
-          break;
-        case 1:
-          animationClass = 'twinkle-2';
-          break;
-        case 2:
-          animationClass = 'twinkle-3';
-          break;
-        default:
-          animationClass = 'pulse-star';
-      }
-      
-      const hasGlow = Math.random() > 0.9;
-      const glowClass = hasGlow ? 'star-glow' : '';
-      const glowSize = hasGlow ? size * 3 : size;
+    return stars.map((star) => {
+      const animationClasses = ['twinkle-1', 'twinkle-2', 'twinkle-3', 'pulse-star'];
+      const animationClass = animationClasses[star.animationType];
+      const glowClass = star.hasGlow ? 'star-glow' : '';
+      const glowSize = star.hasGlow ? star.size * 3 : star.size;
       
       return (
         <div
-          key={`star-${starsKey}-${i}`}
+          key={star.id}
           className={`absolute rounded-full ${animationClass} ${glowClass}`}
           style={{
-            width: `${size}px`,
-            height: `${size}px`,
-            left: `${x}%`,
-            top: `${y}%`,
-            opacity: baseOpacity,
-            backgroundColor: hasGlow ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 1)',
-            boxShadow: hasGlow ? `0 0 ${glowSize}px ${glowSize/2}px rgba(255, 255, 255, ${baseOpacity})` : 'none',
-            animationDelay: `${Math.random() * 10}s`,
-            animationDuration: `${2 + Math.random() * 8}s`
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            left: `${star.x}%`,
+            top: `${star.y}%`,
+            opacity: star.opacity,
+            backgroundColor: star.hasGlow ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 1)',
+            boxShadow: star.hasGlow ? `0 0 ${glowSize}px ${glowSize/2}px rgba(255, 255, 255, ${star.opacity})` : 'none',
+            animationDelay: `${star.animationDelay}s`,
+            animationDuration: `${star.animationDuration}s`
           }}
         />
       );
@@ -434,7 +437,6 @@ const Home = () => {
   }
 
   const isDarkMode = weather?.weather[0]?.icon?.includes('n') || false;
-  const gradientClass = getBackgroundGradient();
   const isSunnyDay = !isDarkMode && weather?.weather[0]?.id === 800;
 
   return (
@@ -509,6 +511,10 @@ const Home = () => {
         .twinkle-1, .twinkle-2, .twinkle-3, .pulse-star {
           animation-iteration-count: infinite;
           z-index: 0;
+        }
+        
+        .cloud-float {
+          will-change: transform;
         }
       `}</style>
 
@@ -617,6 +623,7 @@ const Home = () => {
                       ? 'rgba(146,64,14,0.8)' 
                       : 'rgba(75,85,99,0.8)' 
                 }}>
+                <p>&copy; 2025 AtmoSense. Powered by OpenWeatherMap API.</p>
               </div>
             </footer>
           </div>
