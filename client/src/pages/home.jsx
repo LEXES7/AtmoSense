@@ -623,7 +623,6 @@ const Home = () => {
                       ? 'rgba(146,64,14,0.8)' 
                       : 'rgba(75,85,99,0.8)' 
                 }}>
-                <p>&copy; 2025 AtmoSense. Powered by OpenWeatherMap API.</p>
               </div>
             </footer>
           </div>
