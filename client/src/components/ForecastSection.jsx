@@ -7,7 +7,6 @@ import {
   CardContent, 
   Divider, 
   CircularProgress,
-  Grid,
   useTheme,
   alpha,
   Paper
@@ -21,14 +20,15 @@ import {
   WaterDrop,
   Visibility,
   Air,
-  Speed,
-  TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Compress,
+  Navigation
 } from '@mui/icons-material';
 
 const ForecastSection = ({ lat, lon }) => {
   const theme = useTheme();
   const [forecast, setForecast] = useState(null);
+  const [currentWeather, setCurrentWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -37,18 +37,20 @@ const ForecastSection = ({ lat, lon }) => {
     : process.env.REACT_APP_WEATHER_API_KEY;
   
   useEffect(() => {
-    const fetchForecast = async () => {
+    const fetchData = async () => {
       if (!lat || !lon) return;
       
       try {
         setLoading(true);
-        const response = await axios.get(
-          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
-        );
         
-        // Process forecast data to get daily forecasts
-        const dailyForecasts = processForecastData(response.data.list);
+        const [forecastResponse, currentResponse] = await Promise.all([
+          axios.get(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`),
+          axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`)
+        ]);
+        
+        const dailyForecasts = processForecastData(forecastResponse.data.list);
         setForecast(dailyForecasts);
+        setCurrentWeather(currentResponse.data);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching forecast data:", err);
@@ -57,15 +59,13 @@ const ForecastSection = ({ lat, lon }) => {
       }
     };
     
-    fetchForecast();
+    fetchData();
   }, [lat, lon, API_KEY]);
   
-  // Process the 3-hour forecast data into daily forecasts
   const processForecastData = (forecastList) => {
     const dailyData = {};
     
     forecastList.forEach(item => {
-      // Get date without time
       const date = new Date(item.dt * 1000).toISOString().split('T')[0];
       
       if (!dailyData[date]) {
@@ -75,13 +75,12 @@ const ForecastSection = ({ lat, lon }) => {
           tempMax: item.main.temp_max,
           weatherId: item.weather[0].id,
           description: item.weather[0].description,
-          pop: item.pop, // Probability of precipitation
+          pop: item.pop,
           humidity: item.main.humidity,
           windSpeed: item.wind.speed,
           weatherConditions: []
         };
       } else {
-        // Update min/max temperatures
         if (item.main.temp_min < dailyData[date].tempMin) {
           dailyData[date].tempMin = item.main.temp_min;
         }
@@ -90,33 +89,28 @@ const ForecastSection = ({ lat, lon }) => {
         }
       }
       
-      // Store all weather conditions to determine the most frequent one
       dailyData[date].weatherConditions.push({
         id: item.weather[0].id,
         description: item.weather[0].description,
         time: new Date(item.dt * 1000).getHours()
       });
       
-      // Update precipitation probability
       if (item.pop > dailyData[date].pop) {
         dailyData[date].pop = item.pop;
       }
     });
     
-    // Find the most representative weather condition (during daytime if possible)
     Object.keys(dailyData).forEach(date => {
       const daytimeConditions = dailyData[date].weatherConditions.filter(
         cond => cond.time >= 9 && cond.time <= 18
       );
       
       if (daytimeConditions.length > 0) {
-        // Count occurrences of each weather id during daytime
         const counts = {};
         daytimeConditions.forEach(cond => {
           counts[cond.id] = (counts[cond.id] || 0) + 1;
         });
         
-        // Find the most frequent weather id
         let maxCount = 0;
         let mostFrequentId = null;
         
@@ -134,12 +128,11 @@ const ForecastSection = ({ lat, lon }) => {
       }
     });
     
-    // Convert to array and limit to 7 days
     return Object.values(dailyData).slice(0, 7);
   };
   
   const getWeatherIcon = (weatherId) => {
-    const iconSize = { fontSize: 36 }; // Increased size
+    const iconSize = { fontSize: 32 };
     
     if (weatherId >= 200 && weatherId < 300) 
       return <Thunderstorm style={iconSize} className="text-purple-500" />;
@@ -165,7 +158,6 @@ const ForecastSection = ({ lat, lon }) => {
     return date.toLocaleDateString('en-US', { weekday: 'short' });
   };
   
-  // Get weather background gradient based on weather code
   const getWeatherCardColor = (weatherId, index) => {
     const baseOpacity = Math.max(0.9 - (index * 0.08), 0.4);
     
@@ -182,13 +174,12 @@ const ForecastSection = ({ lat, lon }) => {
     if (weatherId > 800) 
       return `linear-gradient(135deg, ${alpha('#78909c', baseOpacity)} 0%, ${alpha('#546e7a', baseOpacity)} 100%)`;
       
-    // Default
     return `linear-gradient(135deg, ${alpha('#42a5f5', baseOpacity)} 0%, ${alpha('#1976d2', baseOpacity)} 100%)`;
   };
   
   const getWeatherDesc = (weatherId, pop) => {
     if (pop >= 0.3) {
-      return `${Math.round(pop * 100)}% chance of precipitation`;
+      return `${Math.round(pop * 100)}% rain`;
     }
     
     if (weatherId >= 200 && weatherId < 300) return "Thunderstorm";
@@ -201,130 +192,181 @@ const ForecastSection = ({ lat, lon }) => {
     if (weatherId > 802) return "Cloudy";
     return "";
   };
+
+  const getWindDirection = (degrees) => {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return directions[Math.round(degrees / 45) % 8];
+  };
   
   if (loading) {
     return (
-      <Box className="w-full h-full flex justify-center items-center p-8">
-        <CircularProgress size={50} color="primary" />
-      </Box>
+      <Card sx={{ 
+        backgroundColor: 'rgba(25, 118, 210, 0.15)', 
+        borderRadius: '20px',
+        height: '400px'
+      }}>
+        <CardContent sx={{ 
+          height: '100%', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <CircularProgress size={50} color="primary" />
+        </CardContent>
+      </Card>
     );
   }
   
   if (error) {
     return (
-      <Box className="w-full p-6 text-center text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl">
-        <Typography variant="h6">{error}</Typography>
-      </Box>
+      <Card sx={{ 
+        backgroundColor: 'rgba(244, 67, 54, 0.15)', 
+        borderRadius: '20px',
+        height: '400px'
+      }}>
+        <CardContent sx={{ 
+          height: '100%', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <Typography variant="h6" color="error">{error}</Typography>
+        </CardContent>
+      </Card>
     );
   }
   
   if (!forecast) return null;
   
   return (
-    <Box className="h-full flex flex-col">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* 7-Day Forecast Card */}
       <Card 
         sx={{ 
-          flex: 1,
           backgroundColor: 'rgba(25, 118, 210, 0.15)', 
           borderRadius: '20px',
           backgroundImage: 'linear-gradient(to right bottom, rgba(25, 118, 210, 0.15), rgba(21, 101, 192, 0.25))',
-          boxShadow: '0px 10px 30px rgba(0, 0, 0, 0.15)'
+          boxShadow: '0px 10px 30px rgba(0, 0, 0, 0.15)',
+          overflow: 'hidden'
         }}
       >
-        <CardContent sx={{ p: { xs: 3, sm: 4 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            mb: 5,
-            mt: 2
-          }}>
-            <Typography 
-              variant="h4" 
-              component="h2" 
-              sx={{ 
-                color: 'white', 
-                fontWeight: 700,
-                textAlign: 'center',
-                position: 'relative',
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  bottom: -12,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '80px',
-                  height: '4px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                  borderRadius: '2px'
-                }
-              }}
-            >
-              7-Day Forecast
-            </Typography>
-          </Box>
+        <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+          <Typography 
+            variant="h4" 
+            component="h2" 
+            sx={{ 
+              color: 'white', 
+              fontWeight: 700,
+              textAlign: 'center',
+              mb: 4,
+              position: 'relative',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: -12,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '80px',
+                height: '4px',
+                backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: '2px'
+              }
+            }}
+          >
+            7-Day Forecast
+          </Typography>
           
-          <Box className="forecast-scroll-container overflow-x-auto pb-6" sx={{ 
-            '&::-webkit-scrollbar': { height: '8px' },
-            '&::-webkit-scrollbar-track': { background: alpha(theme.palette.grey[400], 0.2), borderRadius: '10px' },
-            '&::-webkit-scrollbar-thumb': { background: alpha(theme.palette.primary.main, 0.5), borderRadius: '10px' },
-            mt: 5,
-            flex: '1 0 auto'
+          <Box sx={{ 
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            '&::-webkit-scrollbar': { height: '6px' },
+            '&::-webkit-scrollbar-track': { 
+              background: alpha(theme.palette.grey[400], 0.2), 
+              borderRadius: '10px' 
+            },
+            '&::-webkit-scrollbar-thumb': { 
+              background: alpha(theme.palette.primary.main, 0.5), 
+              borderRadius: '10px' 
+            },
+            pb: 2
           }}>
             <Box 
-              className="flex min-w-min"
               sx={{ 
-                justifyContent: 'space-between',
-                width: '100%',
-                gap: { xs: '14px', sm: '20px' }
+                display: 'flex',
+                gap: { xs: 2, sm: 3 },
+                minWidth: 'max-content',
+                pb: 1
               }}
             >
               {forecast.map((day, index) => (
                 <Paper
                   key={index}
                   elevation={4}
-                  className="forecast-day-card flex-shrink-0 rounded-2xl overflow-hidden relative"
                   sx={{
-                    width: { xs: '150px', sm: '180px' },
+                    minWidth: { xs: '140px', sm: '160px' },
+                    maxWidth: { xs: '140px', sm: '160px' },
                     background: getWeatherCardColor(day.weatherId, index),
                     color: 'white',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: theme.shadows[10],
-                    },
+                    borderRadius: '16px',
+                    overflow: 'hidden',
                     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: theme.shadows[8],
+                    }
                   }}
                 >
-                  <Box className="p-5 flex flex-col items-center">
-                    {/* Day Name */}
-                    <Typography variant="h6" className="font-medium mb-1">
+                  <Box sx={{ p: 3, textAlign: 'center' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                       {getDayName(day.date, index)}
                     </Typography>
                     
-                    {/* Date */}
-                    <Typography variant="body2" className="opacity-80 mb-4">
+                    <Typography variant="body2" sx={{ opacity: 0.8, mb: 2 }}>
                       {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </Typography>
                     
-                    {/* Weather Icon */}
-                    <Box className="mb-2 p-3 bg-white bg-opacity-20 rounded-full">
+                    <Box sx={{ 
+                      mb: 2, 
+                      p: 2, 
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                      borderRadius: '50%',
+                      width: 56,
+                      height: 56,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto'
+                    }}>
                       {getWeatherIcon(day.weatherId)}
                     </Box>
                     
-                    {/* Temperature */}
-                    <Typography variant="h4" className="font-bold mt-3">
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
                       {Math.round(day.tempMax)}°
                     </Typography>
                     
-                    <Typography variant="body1" className="opacity-75 mb-1 flex items-center">
-                      <TrendingDown fontSize="small" className="mr-1" />
+                    <Typography variant="body2" sx={{ 
+                      opacity: 0.75, 
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <TrendingDown sx={{ fontSize: 16, mr: 0.5 }} />
                       {Math.round(day.tempMin)}°
                     </Typography>
                     
-                    {/* Divider */}
-                    <Divider className="w-3/4 my-3 bg-white bg-opacity-30" />
+                    <Divider sx={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.3)', 
+                      mb: 2,
+                      width: '60%',
+                      margin: '0 auto 16px auto'
+                    }} />
                     
-                    {/* Condition Description */}
-                    <Typography variant="body2" className="text-center opacity-90 mt-1">
+                    <Typography variant="caption" sx={{ 
+                      opacity: 0.9,
+                      fontSize: '0.75rem',
+                      lineHeight: 1.2
+                    }}>
                       {getWeatherDesc(day.weatherId, day.pop)}
                     </Typography>
                   </Box>
@@ -333,124 +375,258 @@ const ForecastSection = ({ lat, lon }) => {
             </Box>
           </Box>
           
-          {/* Additional Weather Details - Enhanced with more visual elements */}
-          <Box className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="weather-details-card rounded-xl" sx={{ 
-              backgroundColor: 'rgba(30, 136, 229, 0.20)',
-              backdropFilter: 'blur(10px)',
-              transition: 'transform 0.3s',
-              '&:hover': {
-                transform: 'translateY(-5px)'
-              }
-            }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h5" className="font-medium mb-4" sx={{ color: 'white' }}>
-                  💧 Humidity & Precipitation
-                </Typography>
-                <Box className="grid grid-cols-3 gap-4">
-                  {forecast.slice(0, 3).map((day, index) => (
-                    <Box key={index} className="flex flex-col items-center p-3 bg-white/10 rounded-lg">
-                      <Box className="text-sm font-medium" sx={{ color: alpha('#fff', 0.9) }}>
-                        {getDayName(day.date, index)}
-                      </Box>
-                      <Box className="mt-3 flex flex-col items-center">
-                        <WaterDrop className="text-blue-300 mb-1" />
-                        <Typography variant="body1" sx={{ color: alpha('#fff', 0.9) }}>
-                          {day.humidity}%
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: alpha('#fff', 0.7) }}>
-                          Rain: {Math.round(day.pop * 100)}%
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
-              </CardContent>
-            </Card>
-            
-            <Card className="weather-details-card rounded-xl" sx={{ 
-              backgroundColor: 'rgba(30, 136, 229, 0.20)',
-              backdropFilter: 'blur(10px)',
-              transition: 'transform 0.3s',
-              '&:hover': {
-                transform: 'translateY(-5px)'
-              }
-            }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h5" className="font-medium mb-4" sx={{ color: 'white' }}>
-                  💨 Wind Conditions
-                </Typography>
-                <Box className="grid grid-cols-3 gap-4">
-                  {forecast.slice(0, 3).map((day, index) => (
-                    <Box key={index} className="flex flex-col items-center p-3 bg-white/10 rounded-lg">
-                      <Box className="text-sm font-medium" sx={{ color: alpha('#fff', 0.9) }}>
-                        {getDayName(day.date, index)}
-                      </Box>
-                      <Box className="mt-3 flex flex-col items-center">
-                        <Air className="text-cyan-300 mb-1" />
-                        <Typography variant="body1" sx={{ color: alpha('#fff', 0.9) }}>
-                          {(day.windSpeed * 3.6).toFixed(1)} km/h
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-          
-          {/* Additional data visualization element */}
-          <Card className="weather-details-card rounded-xl mt-6" sx={{ 
-            backgroundColor: 'rgba(30, 136, 229, 0.20)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h5" className="font-medium mb-4" sx={{ color: 'white' }}>
-                Temperature Trend
-              </Typography>
-              <Box className="relative h-[100px] flex items-end justify-between px-4">
-                {/* Simple temperature visualization bars */}
-                {forecast.slice(0, 7).map((day, index) => (
-                  <Box key={index} className="flex flex-col items-center">
-                    <Typography variant="caption" sx={{ color: 'white', mb: 1 }}>
-                      {Math.round(day.tempMax)}°
-                    </Typography>
-                    <Box 
-                      sx={{ 
-                        width: '20px', 
-                        backgroundColor: alpha('#fff', 0.3),
-                        height: `${(day.tempMax / 40) * 100}%`,
-                        minHeight: '10px',
-                        borderTopLeftRadius: '3px',
-                        borderTopRightRadius: '3px',
-                        position: 'relative'
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ color: 'white', mt: 1 }}>
-                      {getDayName(day.date, index).substring(0, 3)}
-                    </Typography>
-                  </Box>
-                ))}
-                {/* Baseline */}
-                <Box sx={{ 
-                  position: 'absolute', 
-                  bottom: '24px', 
-                  left: 0, 
-                  right: 0, 
-                  height: '1px', 
-                  backgroundColor: alpha('#fff', 0.2) 
-                }} />
-              </Box>
-            </CardContent>
-          </Card>
-          
-          <Box className="mt-6 text-center">
-            <Typography variant="body2" sx={{ color: alpha('#fff', 0.8) }}>
-              Data updated {new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+              Updated {new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
             </Typography>
           </Box>
         </CardContent>
       </Card>
+
+      {/* Humidity & Rain and Wind Speed Cards */}
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+        gap: 3
+      }}>
+        <Card sx={{ 
+          backgroundColor: 'rgba(30, 136, 229, 0.20)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '20px',
+          boxShadow: '0px 8px 25px rgba(0, 0, 0, 0.15)',
+          transition: 'transform 0.3s',
+          '&:hover': {
+            transform: 'translateY(-2px)'
+          }
+        }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 600 }}>
+              💧 Humidity & Rain
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+              {forecast.slice(0, 3).map((day, index) => (
+                <Box key={index} sx={{ 
+                  textAlign: 'center', 
+                  p: 2, 
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                  borderRadius: '8px' 
+                }}>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', mb: 1 }}>
+                    {getDayName(day.date, index)}
+                  </Typography>
+                  <WaterDrop sx={{ color: '#81C784', mb: 1, fontSize: 20 }} />
+                  <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>
+                    {day.humidity}%
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    Rain: {Math.round(day.pop * 100)}%
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+        
+        <Card sx={{ 
+          backgroundColor: 'rgba(30, 136, 229, 0.20)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '20px',
+          boxShadow: '0px 8px 25px rgba(0, 0, 0, 0.15)',
+          transition: 'transform 0.3s',
+          '&:hover': {
+            transform: 'translateY(-2px)'
+          }
+        }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 600 }}>
+              💨 Wind Speed
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
+              {forecast.slice(0, 3).map((day, index) => (
+                <Box key={index} sx={{ 
+                  textAlign: 'center', 
+                  p: 2, 
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                  borderRadius: '8px' 
+                }}>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', mb: 1 }}>
+                    {getDayName(day.date, index)}
+                  </Typography>
+                  <Air sx={{ color: '#4FC3F7', mb: 1, fontSize: 20 }} />
+                  <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>
+                    {(day.windSpeed * 3.6).toFixed(1)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    km/h
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* Air Conditions Card - Moved from WeatherCard */}
+      {currentWeather && (
+        <Card sx={{ 
+  backgroundColor: 'rgba(30, 136, 229, 0.20)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '20px',
+          boxShadow: '0px 8px 25px rgba(0, 0, 0, 0.15)',
+          transition: 'transform 0.3s',
+          '&:hover': {
+            transform: 'translateY(-2px)'
+          }
+        }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ 
+              color: 'white', 
+              mb: 3, 
+              fontWeight: 600,
+              fontSize: '1.25rem'
+            }}>
+              Air Conditions
+            </Typography>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
+              gap: 3
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                backgroundColor: 'rgba(33, 150, 243, 0.1)', 
+                p: 3, 
+                borderRadius: '12px',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(33, 150, 243, 0.15)',
+                  transform: 'translateY(-1px)'
+                }
+              }}>
+                <Box sx={{ 
+                  p: 2, 
+                  borderRadius: '50%', 
+                  backgroundColor: 'rgba(33, 150, 243, 0.2)', 
+                  mr: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <WaterDrop sx={{ color: '#2196F3', fontSize: 24 }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5 }}>
+                    Humidity
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                    {currentWeather.main.humidity}%
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                backgroundColor: 'rgba(0, 188, 212, 0.1)', 
+                p: 3, 
+                borderRadius: '12px',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 188, 212, 0.15)',
+                  transform: 'translateY(-1px)'
+                }
+              }}>
+                <Box sx={{ 
+                  p: 2, 
+                  borderRadius: '50%', 
+                  backgroundColor: 'rgba(0, 188, 212, 0.2)', 
+                  mr: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Air sx={{ color: '#00BCD4', fontSize: 24 }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5 }}>
+                    Pressure
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                    {currentWeather.main.pressure} hPa
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                backgroundColor: 'rgba(255, 193, 7, 0.1)', 
+                p: 3, 
+                borderRadius: '12px',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 193, 7, 0.15)',
+                  transform: 'translateY(-1px)'
+                }
+              }}>
+                <Box sx={{ 
+                  p: 2, 
+                  borderRadius: '50%', 
+                  backgroundColor: 'rgba(255, 193, 7, 0.2)', 
+                  mr: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Compress sx={{ color: '#FFC107', fontSize: 24 }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5 }}>
+                    Pressure Change
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                    {currentWeather.main.pressure > 1013 ? '+' : '-'}{Math.abs(currentWeather.main.pressure - 1013)} hPa
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                backgroundColor: 'rgba(156, 39, 176, 0.1)', 
+                p: 3, 
+                borderRadius: '12px',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(156, 39, 176, 0.15)',
+                  transform: 'translateY(-1px)'
+                }
+              }}>
+                <Box sx={{ 
+                  p: 2, 
+                  borderRadius: '50%', 
+                  backgroundColor: 'rgba(156, 39, 176, 0.2)', 
+                  mr: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Navigation sx={{ color: '#9C27B0', fontSize: 24 }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ color: 'white', mb: 0.5 }}>
+                    Wind Direction
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                    {currentWeather.wind.deg}° {getWindDirection(currentWeather.wind.deg)}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 };

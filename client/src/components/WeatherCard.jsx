@@ -7,10 +7,8 @@ import {
   WaterDrop,
   Air,
   Visibility,
-  Navigation,
   CompareArrows,
   Schedule,
-  Compress,
   ExploreOutlined
 } from '@mui/icons-material';
 
@@ -29,22 +27,22 @@ const WeatherCard = ({ weather }) => {
   };
 
   const getWeatherColor = (weatherId) => {
-    if (weatherId >= 200 && weatherId < 300) return "text-purple-500"; // thunderstorm
-    if (weatherId >= 300 && weatherId < 600) return "text-blue-500"; // rain
-    if (weatherId >= 600 && weatherId < 700) return "text-cyan-400"; // snow
-    if (weatherId >= 700 && weatherId < 800) return "text-gray-400"; // atmosphere
-    if (weatherId === 800) return "text-yellow-500"; // clear
-    if (weatherId > 800) return "text-gray-400"; // clouds
+    if (weatherId >= 200 && weatherId < 300) return "text-purple-500";
+    if (weatherId >= 300 && weatherId < 600) return "text-blue-500";
+    if (weatherId >= 600 && weatherId < 700) return "text-cyan-400";
+    if (weatherId >= 700 && weatherId < 800) return "text-gray-400";
+    if (weatherId === 800) return "text-yellow-500";
+    if (weatherId > 800) return "text-gray-400";
     return "text-yellow-500";
   };
 
   const getBgGradient = (weatherId) => {
-    if (weatherId >= 200 && weatherId < 300) return "bg-gradient-to-br from-purple-900 to-blue-900"; // thunderstorm
-    if (weatherId >= 300 && weatherId < 600) return "bg-gradient-to-br from-blue-700 to-blue-900"; // rain
-    if (weatherId >= 600 && weatherId < 700) return "bg-gradient-to-br from-blue-200 to-blue-400"; // snow
-    if (weatherId >= 700 && weatherId < 800) return "bg-gradient-to-br from-gray-300 to-gray-500"; // atmosphere
-    if (weatherId === 800) return "bg-gradient-to-br from-sky-400 to-blue-500"; // clear
-    if (weatherId > 800) return "bg-gradient-to-br from-slate-400 to-slate-600"; // clouds
+    if (weatherId >= 200 && weatherId < 300) return "bg-gradient-to-br from-purple-900 to-blue-900";
+    if (weatherId >= 300 && weatherId < 600) return "bg-gradient-to-br from-blue-700 to-blue-900";
+    if (weatherId >= 600 && weatherId < 700) return "bg-gradient-to-br from-blue-200 to-blue-400";
+    if (weatherId >= 700 && weatherId < 800) return "bg-gradient-to-br from-gray-300 to-gray-500";
+    if (weatherId === 800) return "bg-gradient-to-br from-sky-400 to-blue-500";
+    if (weatherId > 800) return "bg-gradient-to-br from-slate-400 to-slate-600";
     return "bg-gradient-to-br from-sky-400 to-blue-500";
   };
 
@@ -59,13 +57,11 @@ const WeatherCard = ({ weather }) => {
     return directions[Math.round(degrees / 45) % 8];
   };
   
-  // Function to render the wind compass
   const renderWindCompass = () => {
     const windDegree = weather.wind.deg;
-    const windSpeed = Math.round(weather.wind.speed * 3.6); // Convert to km/h
-    const compassSize = 160; // Base size - will be responsive
+    const windSpeed = Math.round(weather.wind.speed * 3.6);
+    const compassSize = 160;
     
-    // Determine color intensity based on wind speed
     const getWindSpeedColor = () => {
       if (windSpeed < 10) return "from-blue-300 to-blue-400";
       if (windSpeed < 20) return "from-blue-400 to-blue-500";
@@ -89,7 +85,6 @@ const WeatherCard = ({ weather }) => {
               maxHeight: '90vw'
             }}
           >
-            {/* Compass background */}
             <div 
               className="absolute inset-0 rounded-full border-2 border-white/30 bg-gradient-to-br from-white/10 to-white/5"
               style={{
@@ -97,7 +92,6 @@ const WeatherCard = ({ weather }) => {
               }}
             />
             
-            {/* Compass markers */}
             {['N', 'E', 'S', 'W'].map((dir, i) => (
               <div 
                 key={dir} 
@@ -115,7 +109,6 @@ const WeatherCard = ({ weather }) => {
               </div>
             ))}
             
-            {/* Secondary compass markers */}
             {['NE', 'SE', 'SW', 'NW'].map((dir, i) => {
               const angleDeg = i * 90 + 45;
               const radians = (angleDeg * Math.PI) / 180;
@@ -140,13 +133,11 @@ const WeatherCard = ({ weather }) => {
               );
             })}
             
-            {/* Degree circles - subtle circles to mark degrees */}
             <div className="absolute inset-0 rounded-full border border-white/10" 
               style={{ width: '70%', height: '70%', left: '15%', top: '15%' }} />
             <div className="absolute inset-0 rounded-full border border-white/10" 
               style={{ width: '40%', height: '40%', left: '30%', top: '30%' }} />
               
-            {/* Wind direction arrow */}
             <div 
               className="absolute"
               style={{ 
@@ -178,7 +169,6 @@ const WeatherCard = ({ weather }) => {
               />
             </div>
             
-            {/* Center point */}
             <div 
               className="absolute rounded-full bg-white"
               style={{ 
@@ -192,7 +182,6 @@ const WeatherCard = ({ weather }) => {
             />
           </div>
           
-          {/* Wind info */}
           <div className="mt-4 text-center bg-white/20 rounded-md py-2 px-4 backdrop-blur-sm w-full max-w-xs mx-auto">
             <div className="text-sm md:text-base font-medium">
               <span className="font-bold">{getWindDirection(windDegree)}</span> • {windDegree}° • {windSpeed} km/h
@@ -208,9 +197,7 @@ const WeatherCard = ({ weather }) => {
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Main Weather Card - Responsive padding and spacing */}
-      <div className={`flex-1 p-4 md:p-8 rounded-2xl shadow-xl mb-6 text-white ${getBgGradient(weatherId)}`}>
-        {/* Top Section - Responsive layout */}
+      <div className={`flex-1 p-4 md:p-8 rounded-2xl shadow-xl text-white ${getBgGradient(weatherId)}`}>
         <div className="flex flex-col md:flex-row md:justify-between md:items-start space-y-4 md:space-y-0">
           <div className="text-center md:text-left">
             <h2 className="text-4xl md:text-5xl font-bold">
@@ -229,7 +216,6 @@ const WeatherCard = ({ weather }) => {
           </div>
         </div>
 
-        {/* Middle Section - Responsive grid with consistent alignment */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-8 md:mt-12">
           <div className="flex flex-col items-center bg-white/15 p-3 md:p-5 rounded-xl transform transition-all hover:scale-105 text-center">
             <WaterDrop className="text-2xl md:text-3xl" />
@@ -256,10 +242,8 @@ const WeatherCard = ({ weather }) => {
           </div>
         </div>
         
-        {/* Wind Direction Compass - Responsive */}
         {renderWindCompass()}
         
-        {/* Bottom Section - Responsive layout */}
         <div className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 text-sm md:text-base opacity-90">
           <div className="flex items-center justify-center md:justify-start space-x-3 bg-white/10 p-3 md:p-4 rounded-xl">
             <Schedule className="text-xl md:text-2xl flex-shrink-0" />
@@ -274,62 +258,6 @@ const WeatherCard = ({ weather }) => {
             <div className="text-center md:text-left">
               <p className="text-sm md:text-lg">Min: {Math.round(weather.main.temp_min)}°C</p>
               <p className="text-sm md:text-lg">Max: {Math.round(weather.main.temp_max)}°C</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Secondary Info Card - Responsive */}
-      <div className="bg-white dark:bg-slate-800 shadow-lg rounded-2xl p-4 md:p-6">
-        <h3 className="font-semibold text-lg md:text-xl text-gray-700 dark:text-gray-200 mb-4 text-center md:text-left">
-          Air Conditions
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <div className="flex items-center bg-blue-50 dark:bg-blue-900/30 p-3 md:p-4 rounded-xl">
-            <div className="p-2 md:p-3 rounded-full bg-blue-100 dark:bg-blue-800 mr-3 md:mr-4 flex-shrink-0">
-              <WaterDrop className="text-blue-500 dark:text-blue-300" fontSize="medium" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Humidity</p>
-              <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-semibold">
-                {weather.main.humidity}%
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center bg-cyan-50 dark:bg-cyan-900/30 p-3 md:p-4 rounded-xl">
-            <div className="p-2 md:p-3 rounded-full bg-cyan-100 dark:bg-cyan-800 mr-3 md:mr-4 flex-shrink-0">
-              <Air className="text-cyan-500 dark:text-cyan-300" fontSize="medium" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Pressure</p>
-              <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-semibold">
-                {weather.main.pressure} hPa
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center bg-amber-50 dark:bg-amber-900/30 p-3 md:p-4 rounded-xl">
-            <div className="p-2 md:p-3 rounded-full bg-amber-100 dark:bg-amber-800 mr-3 md:mr-4 flex-shrink-0">
-              <Compress className="text-amber-500 dark:text-amber-300" fontSize="medium" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Pressure Change</p>
-              <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-semibold">
-                {weather.main.pressure > 1013 ? '+' : '-'}{Math.abs(weather.main.pressure - 1013)} hPa
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center bg-purple-50 dark:bg-purple-900/30 p-3 md:p-4 rounded-xl">
-            <div className="p-2 md:p-3 rounded-full bg-purple-100 dark:bg-purple-800 mr-3 md:mr-4 flex-shrink-0">
-              <Navigation className="text-purple-500 dark:text-purple-300" fontSize="medium" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Wind Direction</p>
-              <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-semibold">
-                {weather.wind.deg}° {getWindDirection(weather.wind.deg)}
-              </p>
             </div>
           </div>
         </div>

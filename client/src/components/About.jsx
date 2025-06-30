@@ -20,11 +20,7 @@ import {
 export default function About() {
   const techStack = [
     { name: 'React', color: 'text-blue-500' },
-    { name: 'Node.js', color: 'text-green-500' },
-    { name: 'Express', color: 'text-gray-600' },
-    { name: 'MongoDB', color: 'text-green-600' },
     { name: 'Tailwind CSS', color: 'text-cyan-500' },
-    { name: 'Material-UI', color: 'text-blue-600' },
     { name: 'OpenWeatherMap API', color: 'text-orange-500' }
   ];
 

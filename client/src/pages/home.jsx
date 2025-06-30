@@ -14,7 +14,6 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [animationsReady, setAnimationsReady] = useState(false);
   
-  // Reference to prevent multiple re-renders of animations on search
   const animationRendered = useRef(false);
   const locationFetched = useRef(false);
   const abortControllerRef = useRef(null);
@@ -30,28 +29,23 @@ const Home = () => {
       return;
     }
     
-    // Only fetch location if we haven't already
     if (!locationFetched.current) {
       getUserLocation();
     }
     
-    // Cleanup function
     return () => {
       animationRendered.current = false;
       setAnimationsReady(false);
       
-      // Cancel any ongoing requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
   }, [API_KEY]);
   
-  // Effect to handle animation rendering after weather data is loaded
   useEffect(() => {
     if (weather && !animationRendered.current) {
       animationRendered.current = true;
-      // Small delay to ensure smooth animations after data loads
       const timer = setTimeout(() => {
         setAnimationsReady(true);
       }, 100);
@@ -61,7 +55,6 @@ const Home = () => {
   }, [weather]);
 
   const getUserLocation = () => {
-    // Prevent multiple simultaneous location requests
     if (locationFetched.current) return;
     
     setLoading(true);
@@ -71,7 +64,7 @@ const Home = () => {
     
     if (navigator.geolocation) {
       const options = {
-        enableHighAccuracy: false, // Changed to avoid CoreLocation errors
+        enableHighAccuracy: false,
         timeout: 10000,
         maximumAge: 60000
       };
@@ -99,7 +92,6 @@ const Home = () => {
 
   const fetchLocationName = async (latitude, longitude) => {
     try {
-      // Cancel previous request if exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -122,10 +114,8 @@ const Home = () => {
     }
   };
 
-  // Fetch weather data by coordinates
   const fetchWeatherData = async (latitude, longitude) => {
     try {
-      // Cancel previous request if exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -153,7 +143,6 @@ const Home = () => {
     }
   };
 
-  // Search for a location and get its weather
   const searchLocation = async (event) => {
     if (event) event.preventDefault();
     
@@ -165,14 +154,12 @@ const Home = () => {
     animationRendered.current = false;
     
     try {
-      // Cancel previous request if exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       
       abortControllerRef.current = new AbortController();
       
-      // First get coordinates for the location
       const geoResponse = await axios.get(
         `https://api.openweathermap.org/geo/1.0/direct?q=${searchQuery}&limit=1&appid=${API_KEY}`,
         { signal: abortControllerRef.current.signal }
@@ -196,7 +183,6 @@ const Home = () => {
     }
   };
 
-  // Get weather-specific background colors based on weather conditions
   const getBackgroundGradient = () => {
     if (!weather) return "from-blue-50 to-blue-100";
     
@@ -204,57 +190,53 @@ const Home = () => {
     const isDark = weather.weather[0].icon?.includes('n') || false;
     
     if (isDark) {
-      // Night-time gradients
       return "from-gray-900 via-blue-900/20 to-gray-900";
     } else {
-      // Day-time gradients based on weather
-      if (weatherId === 800) { // Clear sky / Sunny
+      if (weatherId === 800) {
         return "from-sky-400 via-yellow-100 to-sky-200";
-      } else if (weatherId > 800 && weatherId <= 802) { // Few/scattered clouds
+      } else if (weatherId > 800 && weatherId <= 802) {
         return "from-blue-400 via-blue-200 to-blue-100";
-      } else if (weatherId > 802) { // Broken/overcast clouds
+      } else if (weatherId > 802) {
         return "from-gray-300 via-gray-200 to-gray-100";
-      } else if (weatherId >= 700 && weatherId < 800) { // Atmosphere (fog, mist)
+      } else if (weatherId >= 700 && weatherId < 800) {
         return "from-gray-400 via-gray-300 to-gray-200";
-      } else if (weatherId >= 600 && weatherId < 700) { // Snow
+      } else if (weatherId >= 600 && weatherId < 700) {
         return "from-blue-100 via-blue-50 to-gray-100";
-      } else if (weatherId >= 500 && weatherId < 600) { // Rain
+      } else if (weatherId >= 500 && weatherId < 600) {
         return "from-blue-500 via-blue-400 to-blue-300";
-      } else if (weatherId >= 300 && weatherId < 500) { // Drizzle
+      } else if (weatherId >= 300 && weatherId < 500) {
         return "from-blue-400 via-blue-300 to-blue-200";
-      } else if (weatherId >= 200 && weatherId < 300) { // Thunderstorm
+      } else if (weatherId >= 200 && weatherId < 300) {
         return "from-indigo-700 via-purple-600 to-indigo-500";
       }
     }
     
-    return "from-blue-50 to-blue-100"; // Default gradient
+    return "from-blue-50 to-blue-100";
   };
 
-  // Get weather-specific background clouds (more clouds for cloudy weather, etc.)
   const getCloudConfig = () => {
     if (!weather) return { count: 6, opacity: 0.4, dark: false };
     
     const weatherId = weather.weather[0].id;
-    const isDark = weather.weather[0].icon?.includes('n') || false; // night icon
+    const isDark = weather.weather[0].icon?.includes('n') || false;
     
-    if (weatherId === 800) { // Clear sky / Sunny
+    if (weatherId === 800) {
       return { count: 2, opacity: 0.2, dark: isDark };
-    } else if (weatherId > 800 && weatherId <= 802) { // Few/scattered clouds
+    } else if (weatherId > 800 && weatherId <= 802) {
       return { count: 5, opacity: 0.5, dark: isDark };
-    } else if (weatherId > 802) { // Broken/overcast clouds
+    } else if (weatherId > 802) {
       return { count: 8, opacity: 0.7, dark: isDark };
-    } else if (weatherId >= 700 && weatherId < 800) { // Atmosphere (fog, mist)
+    } else if (weatherId >= 700 && weatherId < 800) {
       return { count: 4, opacity: 0.8, dark: isDark };
-    } else if (weatherId >= 600 && weatherId < 700) { // Snow
+    } else if (weatherId >= 600 && weatherId < 700) {
       return { count: 6, opacity: 0.5, dark: isDark, snow: true };
-    } else if (weatherId >= 200 && weatherId < 600) { // Rain/Thunder
+    } else if (weatherId >= 200 && weatherId < 600) {
       return { count: 7, opacity: 0.6, dark: isDark, rain: true };
     }
     
     return { count: 6, opacity: 0.4, dark: isDark };
   };
 
-  // Function to render sun effect for sunny weather
   const renderSunEffect = () => {
     if (!animationsReady || !weather || weather.weather[0].id !== 800 || weather.weather[0].icon?.includes('n')) {
       return null;
@@ -269,7 +251,6 @@ const Home = () => {
     );
   };
 
-  // Function to render clouds
   const renderClouds = () => {
     if (!animationsReady) return null;
     
@@ -278,7 +259,6 @@ const Home = () => {
     const cloudOpacity = config.opacity;
     const isDark = config.dark;
     
-    // Cloud shapes for variety
     const cloudShapes = [
       'M0,20 Q5,10 10,20 T20,20 T30,20 T40,20 T50,20 T60,20 T70,20 Q75,10 80,20 L80,40 L0,40 Z',
       'M0,25 Q10,5 20,25 T40,25 T60,25 Q70,5 80,25 L80,50 L0,50 Z',
@@ -286,11 +266,11 @@ const Home = () => {
     ];
     
     return Array(cloudCount).fill().map((_, i) => {
-      const size = Math.random() * 150 + 100; // Random size between 100-250px
-      const duration = Math.random() * 80 + 60; // Random animation duration
-      const delay = Math.random() * -40; // Negative delay for some clouds to be mid-animation on load
+      const size = Math.random() * 150 + 100;
+      const duration = Math.random() * 80 + 60;
+      const delay = Math.random() * -40;
       const shape = cloudShapes[Math.floor(Math.random() * cloudShapes.length)];
-      const cloudOpacityVariation = cloudOpacity * (0.7 + Math.random() * 0.5); // Varying opacity
+      const cloudOpacityVariation = cloudOpacity * (0.7 + Math.random() * 0.5);
       
       return (
         <div 
@@ -340,34 +320,27 @@ const Home = () => {
     });
   };
 
-  // Function to render stars for night mode
   const renderStars = () => {
-    // Only render stars in night mode and when animations are ready
     if (!animationsReady || !weather || !weather.weather[0].icon?.includes('n')) return null;
     
-    // Generate different star counts based on weather (fewer stars if cloudy)
     const weatherId = weather.weather[0].id;
-    let starCount = 300; // Base count for clear night
+    let starCount = 300;
     
-    if (weatherId >= 801 && weatherId <= 802) starCount = 200; // Few clouds
-    else if (weatherId >= 803 && weatherId <= 804) starCount = 100; // More clouds
-    else if (weatherId >= 700 && weatherId < 800) starCount = 60; // Fog/mist
-    else if (weatherId >= 200 && weatherId < 700) starCount = 40; // Rain/snow/thunder
+    if (weatherId >= 801 && weatherId <= 802) starCount = 200;
+    else if (weatherId >= 803 && weatherId <= 804) starCount = 100;
+    else if (weatherId >= 700 && weatherId < 800) starCount = 60;
+    else if (weatherId >= 200 && weatherId < 700) starCount = 40;
     
-    // Create a unique key for this set of stars based on location and weather condition
-    // This ensures stars are regenerated when location changes
     const starsKey = `${weather.id}-${weatherId}-${Math.round(weather.main.temp)}`;
     
     return Array(starCount).fill().map((_, i) => {
-      const size = Math.random() * 2 + 1; // Size between 1-3px
-      const x = Math.random() * 100; // Random x position
-      const y = Math.random() * 100; // Random y position
+      const size = Math.random() * 2 + 1;
+      const x = Math.random() * 100;
+      const y = Math.random() * 100;
       
-      // Generate different types of stars for variety
       const starType = Math.floor(Math.random() * 4);
-      const baseOpacity = 0.1 + Math.random() * 0.7; // Base opacity
+      const baseOpacity = 0.1 + Math.random() * 0.7;
       
-      // Different animations for different star types
       let animationClass = '';
       switch(starType) {
         case 0:
@@ -383,7 +356,6 @@ const Home = () => {
           animationClass = 'pulse-star';
       }
       
-      // Some stars have special "glow" effect
       const hasGlow = Math.random() > 0.9;
       const glowClass = hasGlow ? 'star-glow' : '';
       const glowSize = hasGlow ? size * 3 : size;
@@ -461,19 +433,19 @@ const Home = () => {
     );
   }
 
-  // Determine if we should use dark mode based on weather conditions
   const isDarkMode = weather?.weather[0]?.icon?.includes('n') || false;
-  
-  // Get the appropriate background gradient based on weather
   const gradientClass = getBackgroundGradient();
-  
-  // Determine if it's a sunny day for text color adjustments
   const isSunnyDay = !isDarkMode && weather?.weather[0]?.id === 800;
 
   return (
     <>
-      {/* Global CSS styles */}
       <style>{`
+        html, body {
+          overflow-x: hidden;
+          margin: 0;
+          padding: 0;
+        }
+        
         @keyframes float-cloud {
           0% {
             transform: translateX(0);
@@ -497,7 +469,6 @@ const Home = () => {
           }
         }
         
-        /* Star animations */
         @keyframes twinkle-1 {
           0%, 100% { opacity: 0.1; }
           50% { opacity: 0.7; }
@@ -522,13 +493,11 @@ const Home = () => {
           50% { transform: scale(1.2); opacity: 0.9; }
         }
         
-        /* Sun rays animation */
         @keyframes sun-pulse {
           0%, 100% { opacity: 0.7; transform: scale(1); }
           50% { opacity: 0.9; transform: scale(1.05); }
         }
         
-        /* Radial gradient for sunny background */
         .bg-gradient-radial {
           background-image: radial-gradient(circle, var(--tw-gradient-stops));
         }
@@ -543,110 +512,115 @@ const Home = () => {
         }
       `}</style>
 
-      <div className={`relative min-h-screen overflow-hidden bg-gradient-to-b ${gradientClass}`}>
-        {/* Sun effect for sunny weather */}
+      <div className={`relative min-h-screen bg-gradient-to-b ${gradientClass}`}>
         {renderSunEffect()}
         
-        {/* Night sky with stars - only renders in night mode */}
         <div className="star-container fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
           {renderStars()}
         </div>
         
-        {/* Animated clouds background */}
         <div className="cloud-container fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
           {renderClouds()}
         </div>
         
-        {/* Main content with proper z-index to be above stars and clouds */}
-        <div className="relative z-10 p-4 sm:p-6">
-          <header className="max-w-6xl mx-auto mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-              <div>
-                <h1 className={`text-3xl sm:text-4xl font-bold ${
-                  isDarkMode 
-                    ? 'text-white' 
-                    : isSunnyDay 
-                      ? 'bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-yellow-500'
-                      : 'bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-400'
-                }`}>
-                  AtmoSense
-                </h1>
-                <p className={
-                  isDarkMode 
-                    ? "text-gray-300 mt-1" 
-                    : isSunnyDay 
-                      ? "text-amber-900 mt-1" 
-                      : "text-gray-600 mt-1"
-                }>
-                  {location ? `Weather in ${location.name}, ${location.country}` : 'Your Local Weather'}
-                </p>
-              </div>
-              
-              <div className="mt-4 sm:mt-0">
-                <form onSubmit={searchLocation} className="flex">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search city..."
-                    className={`w-full sm:w-auto px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500
-                      ${isDarkMode
-                        ? 'bg-gray-800/80 border-gray-700 text-white'
-                        : isSunnyDay
-                          ? 'border bg-white/80 text-gray-800'
-                          : 'border bg-white text-gray-800'
-                      }`}
-                  />
-                  <button 
-                    type="submit"
-                    className={`${isSunnyDay ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-2 rounded-r-lg`}
-                  >
-                    <Search fontSize="small" />
-                  </button>
-                </form>
-                <button 
-                  onClick={() => {
-                    locationFetched.current = false;
-                    getUserLocation();
-                  }}
-                  className={`flex items-center text-sm mt-2
-                    ${isDarkMode 
-                      ? 'text-gray-300 hover:text-blue-400' 
-                      : isSunnyDay
-                        ? 'text-amber-900 hover:text-amber-700'
-                        : 'text-gray-600 hover:text-blue-600'
-                    }`}
-                >
-                  <LocationOn fontSize="small" className="mr-1" />
-                  Use my location
-                  <Refresh fontSize="small" className="ml-1" />
-                </button>
-              </div>
-            </div>
-          </header>
-          
-          <main className="max-w-6xl mx-auto">
-            {weather && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
-                  <WeatherCard weather={weather} />
-                </div>
-                <div className="lg:col-span-2">
-                  {coordinates && <ForecastSection lat={coordinates.lat} lon={coordinates.lon} />}
+        <div className="relative z-10">
+          <div className="min-h-screen flex flex-col">
+            <header className="flex-shrink-0 pt-20 pb-4 px-4 sm:px-6">
+              <div className="max-w-6xl mx-auto">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                  <div className="mb-4 sm:mb-0">
+                    <h1 className={`text-3xl sm:text-4xl font-bold ${
+                      isDarkMode 
+                        ? 'text-white' 
+                        : isSunnyDay 
+                          ? 'bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-yellow-500'
+                          : 'bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-400'
+                    }`}>
+                      AtmoSense
+                    </h1>
+                    <p className={
+                      isDarkMode 
+                        ? "text-gray-300 mt-1" 
+                        : isSunnyDay 
+                          ? "text-amber-900 mt-1" 
+                          : "text-gray-600 mt-1"
+                    }>
+                      {location ? `Weather in ${location.name}, ${location.country}` : 'Your Local Weather'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex-shrink-0">
+                    <form onSubmit={searchLocation} className="flex">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search city..."
+                        className={`w-full sm:w-auto px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500
+                          ${isDarkMode
+                            ? 'bg-gray-800/80 border-gray-700 text-white'
+                            : isSunnyDay
+                              ? 'border bg-white/80 text-gray-800'
+                              : 'border bg-white text-gray-800'
+                          }`}
+                      />
+                      <button 
+                        type="submit"
+                        className={`${isSunnyDay ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-2 rounded-r-lg`}
+                      >
+                        <Search fontSize="small" />
+                      </button>
+                    </form>
+                    <button 
+                      onClick={() => {
+                        locationFetched.current = false;
+                        getUserLocation();
+                      }}
+                      className={`flex items-center text-sm mt-2
+                        ${isDarkMode 
+                          ? 'text-gray-300 hover:text-blue-400' 
+                          : isSunnyDay
+                            ? 'text-amber-900 hover:text-amber-700'
+                            : 'text-gray-600 hover:text-blue-600'
+                        }`}
+                    >
+                      <LocationOn fontSize="small" className="mr-1" />
+                      Use my location
+                      <Refresh fontSize="small" className="ml-1" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            )}
-          </main>
-          
-          <footer className="max-w-6xl mx-auto mt-8 text-center text-sm pb-4" 
-            style={{ 
-              color: isDarkMode 
-                ? 'rgba(255,255,255,0.5)' 
-                : isSunnyDay 
-                  ? 'rgba(146,64,14,0.8)' 
-                  : 'rgba(75,85,99,0.8)' 
-            }}>
-          </footer>
+            </header>
+            
+            <main className="flex-1 px-4 sm:px-6">
+              <div className="max-w-6xl mx-auto">
+                {weather && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                    <div className="lg:col-span-1">
+                      <WeatherCard weather={weather} />
+                    </div>
+                    <div className="lg:col-span-2">
+                      {coordinates && <ForecastSection lat={coordinates.lat} lon={coordinates.lon} />}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </main>
+            
+            <footer className="flex-shrink-0 py-4 px-4 sm:px-6">
+              <div className="max-w-6xl mx-auto text-center text-sm" 
+                style={{ 
+                  color: isDarkMode 
+                    ? 'rgba(255,255,255,0.5)' 
+                    : isSunnyDay 
+                      ? 'rgba(146,64,14,0.8)' 
+                      : 'rgba(75,85,99,0.8)' 
+                }}>
+                <p>&copy; 2025 AtmoSense. Powered by OpenWeatherMap API.</p>
+              </div>
+            </footer>
+          </div>
         </div>
       </div>
     </>
