@@ -37,6 +37,7 @@ const WeatherMaps = () => {
   const [showWeatherLayer, setShowWeatherLayer] = useState(true);
   const mapRef = useRef(null);
   const containerRef = useRef(null);
+  const locationTimeoutRef = useRef(null);
   
   const API_KEY = typeof import.meta !== 'undefined' 
     ? import.meta.env.VITE_WEATHER_API_KEY 
@@ -141,25 +142,41 @@ const WeatherMaps = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [updateMapDimensions]);
 
-  // Get user location
+  // Fixed getUserLocation with better error handling
   const getUserLocation = useCallback(() => {
+    if (loading) return; // Prevent multiple simultaneous requests
+    
     setLoading(true);
     setLocationError(null);
     
+    // Clear any existing timeout
+    if (locationTimeoutRef.current) {
+      clearTimeout(locationTimeoutRef.current);
+    }
+    
     if (!navigator.geolocation) {
-      setLocationError('Geolocation not supported');
+      setLocationError('Geolocation not supported by this browser');
       setLoading(false);
       return;
     }
 
     const options = {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 300000
+      enableHighAccuracy: false, // Changed to false to avoid CoreLocation errors
+      timeout: 10000, // Reduced timeout
+      maximumAge: 60000 // Allow cached position for 1 minute
     };
+
+    // Set a backup timeout
+    locationTimeoutRef.current = setTimeout(() => {
+      setLocationError('Location request timed out');
+      setLoading(false);
+    }, 12000);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (locationTimeoutRef.current) {
+          clearTimeout(locationTimeoutRef.current);
+        }
         const { latitude, longitude } = position.coords;
         setUserLocation({ lat: latitude, lng: longitude });
         setMapCenter({ lat: latitude, lng: longitude });
@@ -167,26 +184,41 @@ const WeatherMaps = () => {
         setLoading(false);
       },
       (error) => {
-        let errorMessage = 'Location unavailable';
+        if (locationTimeoutRef.current) {
+          clearTimeout(locationTimeoutRef.current);
+        }
+        let errorMessage = 'Unable to get your location';
         switch(error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied';
+            errorMessage = 'Location access denied by user';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location service unavailable';
+            errorMessage = 'Location information unavailable';
             break;
           case error.TIMEOUT:
             errorMessage = 'Location request timed out';
             break;
+          default:
+            errorMessage = 'An unknown error occurred while getting location';
+            break;
         }
+        console.warn('Geolocation error:', error);
         setLocationError(errorMessage);
         setLoading(false);
       },
       options
     );
+  }, [loading]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (locationTimeoutRef.current) {
+        clearTimeout(locationTimeoutRef.current);
+      }
+    };
   }, []);
 
-  // Base map tiles with better contrast options
   const getBaseTileUrl = (z, x, y) => {
     switch(mapStyle) {
       case 'satellite':
@@ -199,26 +231,27 @@ const WeatherMaps = () => {
     }
   };
 
-  // Enhanced weather tile URL with better parameters
+  // Fixed weather tile URL - ensure integer zoom levels only
   const getWeatherTileUrl = (layer, z, x, y) => {
+    // Ensure zoom level is integer
+    const intZoom = Math.floor(z);
     const servers = ['tile', 'a.tile', 'b.tile', 'c.tile'];
     const server = servers[Math.abs(x + y) % servers.length];
     const timestamp = Math.floor(Date.now() / (1000 * 60 * 10));
-    return `https://${server}.openweathermap.org/map/${layer}/${z}/${x}/${y}.png?appid=${API_KEY}&_=${timestamp}`;
+    return `https://${server}.openweathermap.org/map/${layer}/${intZoom}/${x}/${y}.png?appid=${API_KEY}&_=${timestamp}`;
   };
 
-  // Generate tiles for viewport
   const generateTiles = useCallback(() => {
     const tiles = [];
     const tileSize = 256;
-    const zoomPow = Math.pow(2, zoomLevel);
+    // Ensure integer zoom level
+    const intZoomLevel = Math.floor(zoomLevel);
+    const zoomPow = Math.pow(2, intZoomLevel);
     
-    // Web Mercator projection
     const lat_rad = mapCenter.lat * Math.PI / 180;
     const centerTileX = (mapCenter.lng + 180) / 360 * zoomPow;
     const centerTileY = (1 - Math.log(Math.tan(lat_rad) + 1 / Math.cos(lat_rad)) / Math.PI) / 2 * zoomPow;
     
-    // Calculate visible tiles with buffer
     const tilesWide = Math.ceil(mapDimensions.width / tileSize) + 2;
     const tilesHigh = Math.ceil(mapDimensions.height / tileSize) + 2;
     
@@ -237,10 +270,10 @@ const WeatherMaps = () => {
           tiles.push({
             x: tileX,
             y: tileY,
-            z: zoomLevel,
+            z: intZoomLevel, // Use integer zoom
             pixelX,
             pixelY,
-            key: `${zoomLevel}-${tileX}-${tileY}`
+            key: `${intZoomLevel}-${tileX}-${tileY}`
           });
         }
       }
@@ -249,13 +282,12 @@ const WeatherMaps = () => {
     return tiles;
   }, [mapCenter, zoomLevel, mapDimensions]);
 
-  // Fixed drag handlers to prevent map from going out of bounds
   const handleMouseDown = (e) => {
     if (!mapRef.current) return;
     e.preventDefault();
     setIsDragging(true);
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
     setDragStart({
       x: clientX,
       y: clientY,
@@ -266,24 +298,20 @@ const WeatherMaps = () => {
 
   const handleMouseMove = useCallback((e) => {
     if (!isDragging || !mapRef.current) return;
-    e.preventDefault();
-
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
     
     const deltaX = clientX - dragStart.x;
     const deltaY = clientY - dragStart.y;
     
-    // Improved coordinate conversion with bounds checking
-    const scale = Math.pow(2, zoomLevel);
+    const scale = Math.pow(2, Math.floor(zoomLevel)); // Use integer zoom
     const pixelsPerDegree = (mapDimensions.width * scale) / 360;
     
     const deltaLat = -(deltaY / pixelsPerDegree);
     const deltaLng = (deltaX / pixelsPerDegree);
     
-    // Constrain latitude to valid range
     const newLat = Math.max(-85, Math.min(85, dragStart.lat + deltaLat));
-    // Normalize longitude to [-180, 180]
     let newLng = dragStart.lng + deltaLng;
     while (newLng > 180) newLng -= 360;
     while (newLng < -180) newLng += 360;
@@ -295,51 +323,47 @@ const WeatherMaps = () => {
     setIsDragging(false);
   }, []);
 
-  // Zoom functions with bounds
-  const zoomIn = () => setZoomLevel(prev => Math.min(12, prev + 1));
-  const zoomOut = () => setZoomLevel(prev => Math.max(2, prev - 1));
+  // Fixed zoom functions to use integers only
+  const zoomIn = () => setZoomLevel(prev => Math.min(12, Math.floor(prev) + 1));
+  const zoomOut = () => setZoomLevel(prev => Math.max(2, Math.floor(prev) - 1));
 
-  // Fixed wheel zoom to prevent page scroll ONLY on the map
+  // Fixed wheel zoom - removed from React synthetic event system
   const handleWheel = useCallback((e) => {
-    if (!mapRef.current) return;
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const delta = e.deltaY > 0 ? -0.5 : 0.5;
-    setZoomLevel(prev => Math.max(2, Math.min(12, prev + delta)));
+    // Don't use preventDefault here - handle it with native event listener
+    const delta = e.deltaY > 0 ? -1 : 1; // Only integer increments
+    setZoomLevel(prev => Math.max(2, Math.min(12, Math.floor(prev) + delta)));
   }, []);
 
-  // Double click to zoom
   const handleDoubleClick = useCallback((e) => {
     e.preventDefault();
     zoomIn();
   }, []);
 
-  // Fixed event listeners
+  // Fixed event listeners to avoid passive event issues
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
       if (isDragging) {
-        e.preventDefault();
         handleMouseMove(e);
       }
     };
     
-    const handleGlobalMouseUp = (e) => {
+    const handleGlobalMouseUp = () => {
       if (isDragging) {
-        e.preventDefault();
         handleMouseUp();
       }
     };
 
     if (isDragging) {
-      document.addEventListener('mousemove', handleGlobalMouseMove, { passive: false });
-      document.addEventListener('mouseup', handleGlobalMouseUp, { passive: false });
-      document.addEventListener('touchmove', handleGlobalMouseMove, { passive: false });
-      document.addEventListener('touchend', handleGlobalMouseUp, { passive: false });
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+      document.addEventListener('touchmove', handleGlobalMouseMove);
+      document.addEventListener('touchend', handleGlobalMouseUp);
       
-      // Prevent text selection while dragging
       document.body.style.userSelect = 'none';
       document.body.style.webkitUserSelect = 'none';
+    } else {
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
     }
 
     return () => {
@@ -347,12 +371,33 @@ const WeatherMaps = () => {
       document.removeEventListener('mouseup', handleGlobalMouseUp);
       document.removeEventListener('touchmove', handleGlobalMouseMove);
       document.removeEventListener('touchend', handleGlobalMouseUp);
-      
-      // Restore text selection
       document.body.style.userSelect = '';
       document.body.style.webkitUserSelect = '';
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Add native wheel event listener to handle preventDefault properly
+  useEffect(() => {
+    const mapElement = mapRef.current;
+    if (!mapElement) return;
+
+    const handleNativeWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const delta = e.deltaY > 0 ? -1 : 1;
+      setZoomLevel(prev => Math.max(2, Math.min(12, Math.floor(prev) + delta)));
+    };
+
+    // Add native event listener with non-passive option
+    mapElement.addEventListener('wheel', handleNativeWheel, { passive: false });
+
+    return () => {
+      if (mapElement) {
+        mapElement.removeEventListener('wheel', handleNativeWheel);
+      }
+    };
+  }, []);
 
   const tiles = generateTiles();
   const currentLayer = weatherLayers.find(l => l.id === selectedLayer);
@@ -377,7 +422,6 @@ const WeatherMaps = () => {
   return (
     <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             Weather Maps
@@ -388,9 +432,7 @@ const WeatherMaps = () => {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Weather Layers Sidebar */}
           <div className="xl:col-span-1 space-y-6">
-            {/* Weather Layers */}
             <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-6">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                 <Layers className="mr-3 text-blue-500" />
@@ -405,8 +447,9 @@ const WeatherMaps = () => {
                     className={`w-full group relative overflow-hidden rounded-xl transition-all duration-300 ${
                       selectedLayer === layer.id
                         ? `bg-gradient-to-r ${layer.activeColor} text-white shadow-lg transform scale-105`
-                        : 'bg-gray-50/70 dark:bg-gray-700/70 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 hover:scale-102'
+                        : 'bg-gray-50/70 dark:bg-gray-700/70 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
                     }`}
+                    style={{ transform: selectedLayer === layer.id ? 'scale(1.05)' : 'scale(1)' }}
                   >
                     <div className="flex items-center p-4">
                       <div className="flex-shrink-0">
@@ -425,7 +468,6 @@ const WeatherMaps = () => {
               </div>
             </div>
 
-            {/* Color Legend */}
             {currentLayer && (
               <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-6">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
@@ -454,11 +496,8 @@ const WeatherMaps = () => {
             )}
           </div>
 
-          {/* Map and Controls */}
           <div className="xl:col-span-3 space-y-4">
-            {/* Map Container */}
             <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
-              {/* Map Header */}
               <div className={`bg-gradient-to-r ${currentLayer?.activeColor} px-8 py-6`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -479,7 +518,6 @@ const WeatherMaps = () => {
                 </div>
               </div>
 
-              {/* Map Canvas */}
               <div 
                 ref={mapRef}
                 className={`relative h-[500px] lg:h-[650px] overflow-hidden select-none transition-all duration-300 bg-gray-100 dark:bg-gray-600 ${
@@ -487,7 +525,6 @@ const WeatherMaps = () => {
                 }`}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleMouseDown}
-                onWheel={handleWheel}
                 onDoubleClick={handleDoubleClick}
                 style={{ touchAction: 'none' }}
               >
@@ -545,9 +582,12 @@ const WeatherMaps = () => {
                           }));
                         }}
                         onError={(e) => {
-                          console.warn(`Weather tile failed: ${getWeatherTileUrl(selectedLayer, tile.z, tile.x, tile.y)}`);
-                          e.target.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
-                          e.target.style.border = '1px dashed rgba(255, 0, 0, 0.3)';
+                          // Only log error once per tile type to reduce console spam
+                          if (!e.target.dataset.errorLogged) {
+                            console.warn(`Weather tile failed for ${selectedLayer} at zoom ${tile.z}:`, getWeatherTileUrl(selectedLayer, tile.z, tile.x, tile.y));
+                            e.target.dataset.errorLogged = 'true';
+                          }
+                          e.target.style.backgroundColor = 'rgba(255, 0, 0, 0.05)';
                         }}
                         loading="lazy"
                       />
@@ -555,7 +595,6 @@ const WeatherMaps = () => {
                   </div>
                 )}
 
-                {/* User Location Marker */}
                 {userLocation && (
                   <div 
                     className="absolute transform -translate-x-1/2 -translate-y-1/2 z-40"
@@ -572,7 +611,6 @@ const WeatherMaps = () => {
                   </div>
                 )}
 
-                {/* Center Crosshair */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                   <div className="relative">
                     <div className="w-8 h-8 bg-white/95 dark:bg-gray-800/95 border-2 border-gray-400 dark:border-gray-500 rounded-full shadow-2xl backdrop-blur-sm">
@@ -581,7 +619,6 @@ const WeatherMaps = () => {
                   </div>
                 </div>
 
-                {/* Instructions */}
                 <div className="absolute top-6 left-6 bg-black/80 text-white px-4 py-3 rounded-xl backdrop-blur-lg shadow-2xl z-30">
                   <div className="flex items-center text-sm">
                     <PanTool fontSize="small" className="mr-2 text-blue-400" />
@@ -589,16 +626,15 @@ const WeatherMaps = () => {
                   </div>
                 </div>
 
-                {/* Debug Info */}
                 <div className="absolute top-6 right-6 bg-black/80 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-lg z-30">
                   <div className="space-y-1">
                     <div>API: {API_KEY ? '✓ Connected' : '✗ Missing'}</div>
                     <div>Tiles: {Object.keys(weatherTilesLoaded).length}</div>
                     <div>Layer: {selectedLayer}</div>
+                    <div>Zoom: {Math.floor(zoomLevel)}</div>
                   </div>
                 </div>
 
-                {/* Attribution */}
                 <div className="absolute bottom-4 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-lg shadow-lg z-30">
                   <div className="flex items-center space-x-2">
                     <span>© {mapStyle === 'satellite' ? 'Esri' : 'CartoDB'}</span>
@@ -609,11 +645,10 @@ const WeatherMaps = () => {
               </div>
             </div>
 
-            {/* Horizontal Map Controls */}
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-6 mb-12">
+            {/* Fixed horizontal controls */}
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 items-center">
                 
-                {/* Base Map Style */}
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Base Map</label>
                   <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
@@ -637,7 +672,6 @@ const WeatherMaps = () => {
                   </div>
                 </div>
 
-                {/* Weather Layer Toggle */}
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Weather Layer</label>
                   <button
@@ -652,7 +686,6 @@ const WeatherMaps = () => {
                   </button>
                 </div>
 
-                {/* Zoom Controls */}
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Zoom</label>
                   <div className="flex items-center gap-2">
@@ -664,7 +697,7 @@ const WeatherMaps = () => {
                       <ZoomOut fontSize="small" />
                     </button>
                     <span className="text-sm font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-lg min-w-[3rem] text-center">
-                      {zoomLevel}
+                      {Math.floor(zoomLevel)}
                     </span>
                     <button
                       onClick={zoomIn}
@@ -676,11 +709,10 @@ const WeatherMaps = () => {
                   </div>
                 </div>
 
-                {/* Opacity Control */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Opacity</label>
-                    <span className="text-sm font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs">
+                    <span className="text-sm font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
                       {Math.round(opacity * 100)}%
                     </span>
                   </div>
@@ -695,7 +727,6 @@ const WeatherMaps = () => {
                   />
                 </div>
 
-                {/* Location Button */}
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Location</label>
                   <button
@@ -712,7 +743,6 @@ const WeatherMaps = () => {
                   </button>
                 </div>
 
-                {/* Status */}
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Status</label>
                   <div className="flex items-center justify-center py-2 px-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -723,7 +753,6 @@ const WeatherMaps = () => {
 
               </div>
 
-              {/* Location Status Messages */}
               {locationError && (
                 <div className="mt-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
                   <div className="flex items-center">
@@ -754,8 +783,8 @@ const WeatherMaps = () => {
         </div>
       </div>
 
-      {/* Custom Styles */}
-      <style jsx>{`
+      {/* Fixed CSS styles */}
+      <style>{`
         .opacity-slider {
           background: linear-gradient(to right, #e5e7eb, #3b82f6);
         }
@@ -786,10 +815,6 @@ const WeatherMaps = () => {
           cursor: pointer;
           border: 2px solid white;
           box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
-        }
-        
-        .hover\\:scale-102:hover {
-          transform: scale(1.02);
         }
       `}</style>
     </div>

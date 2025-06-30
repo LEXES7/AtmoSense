@@ -16,6 +16,8 @@ const Home = () => {
   
   // Reference to prevent multiple re-renders of animations on search
   const animationRendered = useRef(false);
+  const locationFetched = useRef(false);
+  const abortControllerRef = useRef(null);
   
   const API_KEY = typeof import.meta !== 'undefined' 
     ? import.meta.env.VITE_WEATHER_API_KEY 
@@ -28,12 +30,20 @@ const Home = () => {
       return;
     }
     
-    getUserLocation();
+    // Only fetch location if we haven't already
+    if (!locationFetched.current) {
+      getUserLocation();
+    }
     
-    // Cleanup animations on component unmount
+    // Cleanup function
     return () => {
       animationRendered.current = false;
       setAnimationsReady(false);
+      
+      // Cancel any ongoing requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, [API_KEY]);
   
@@ -42,29 +52,44 @@ const Home = () => {
     if (weather && !animationRendered.current) {
       animationRendered.current = true;
       // Small delay to ensure smooth animations after data loads
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setAnimationsReady(true);
       }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [weather]);
 
   const getUserLocation = () => {
+    // Prevent multiple simultaneous location requests
+    if (locationFetched.current) return;
+    
     setLoading(true);
+    setError(null);
     setAnimationsReady(false);
     animationRendered.current = false;
     
     if (navigator.geolocation) {
+      const options = {
+        enableHighAccuracy: false, // Changed to avoid CoreLocation errors
+        timeout: 10000,
+        maximumAge: 60000
+      };
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          locationFetched.current = true;
           const { latitude, longitude } = position.coords;
           setCoordinates({ lat: latitude, lon: longitude });
           fetchLocationName(latitude, longitude);
           fetchWeatherData(latitude, longitude);
         },
         (err) => {
+          console.warn('Geolocation error:', err);
           setError("Failed to get your location. Please allow location access or use search instead.");
           setLoading(false);
-        }
+        },
+        options
       );
     } else {
       setError("Geolocation is not supported by your browser. Please use the search feature.");
@@ -74,8 +99,16 @@ const Home = () => {
 
   const fetchLocationName = async (latitude, longitude) => {
     try {
+      // Cancel previous request if exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      abortControllerRef.current = new AbortController();
+      
       const response = await axios.get(
-        `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`
+        `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`,
+        { signal: abortControllerRef.current.signal }
       );
       
       if (response.data && response.data.length > 0) {
@@ -83,28 +116,40 @@ const Home = () => {
         setLocation({ name, country });
       }
     } catch (err) {
-      console.error("Error fetching location name:", err);
+      if (err.name !== 'CanceledError') {
+        console.error("Error fetching location name:", err);
+      }
     }
   };
 
   // Fetch weather data by coordinates
   const fetchWeatherData = async (latitude, longitude) => {
     try {
+      // Cancel previous request if exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      abortControllerRef.current = new AbortController();
+      
       const response = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
+        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`,
+        { signal: abortControllerRef.current.signal }
       );
       
       setWeather(response.data);
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching weather data:", err);
-      
-      if (err.response && err.response.status === 401) {
-        setError("API authentication failed. Your OpenWeatherMap API key may be invalid or inactive.");
-      } else {
-        setError("Failed to fetch weather data. Please try again later.");
+      if (err.name !== 'CanceledError') {
+        console.error("Error fetching weather data:", err);
+        
+        if (err.response && err.response.status === 401) {
+          setError("API authentication failed. Your OpenWeatherMap API key may be invalid or inactive.");
+        } else {
+          setError("Failed to fetch weather data. Please try again later.");
+        }
+        setLoading(false);
       }
-      setLoading(false);
     }
   };
 
@@ -120,9 +165,17 @@ const Home = () => {
     animationRendered.current = false;
     
     try {
+      // Cancel previous request if exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      abortControllerRef.current = new AbortController();
+      
       // First get coordinates for the location
       const geoResponse = await axios.get(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${searchQuery}&limit=1&appid=${API_KEY}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${searchQuery}&limit=1&appid=${API_KEY}`,
+        { signal: abortControllerRef.current.signal }
       );
       
       if (geoResponse.data && geoResponse.data.length > 0) {
@@ -135,9 +188,11 @@ const Home = () => {
         setLoading(false);
       }
     } catch (err) {
-      console.error("Error searching location:", err);
-      setError("Failed to search location. Please check your connection and try again.");
-      setLoading(false);
+      if (err.name !== 'CanceledError') {
+        console.error("Error searching location:", err);
+        setError("Failed to search location. Please check your connection and try again.");
+        setLoading(false);
+      }
     }
   };
 
@@ -373,7 +428,10 @@ const Home = () => {
           <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
           
           <button 
-            onClick={getUserLocation}
+            onClick={() => {
+              locationFetched.current = false;
+              getUserLocation();
+            }}
             className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg mr-2"
           >
             <LocationOn className="mr-1" fontSize="small" />
@@ -413,9 +471,9 @@ const Home = () => {
   const isSunnyDay = !isDarkMode && weather?.weather[0]?.id === 800;
 
   return (
-    <div className={`relative min-h-screen overflow-hidden bg-gradient-to-b ${gradientClass}`}>
-      {/* Animation keyframes */}
-      <style jsx global>{`
+    <>
+      {/* Global CSS styles */}
+      <style>{`
         @keyframes float-cloud {
           0% {
             transform: translateX(0);
@@ -484,109 +542,114 @@ const Home = () => {
           z-index: 0;
         }
       `}</style>
-      
-      {/* Sun effect for sunny weather */}
-      {renderSunEffect()}
-      
-      {/* Night sky with stars - only renders in night mode */}
-      <div className="star-container fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-        {renderStars()}
-      </div>
-      
-      {/* Animated clouds background */}
-      <div className="cloud-container fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
-        {renderClouds()}
-      </div>
-      
-      {/* Main content with proper z-index to be above stars and clouds */}
-      <div className="relative z-10 p-4 sm:p-6">
-        <header className="max-w-6xl mx-auto mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-            <div>
-              <h1 className={`text-3xl sm:text-4xl font-bold ${
-                isDarkMode 
-                  ? 'text-white' 
-                  : isSunnyDay 
-                    ? 'bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-yellow-500'
-                    : 'bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-400'
-              }`}>
-                AtmoSense
-              </h1>
-              <p className={
-                isDarkMode 
-                  ? "text-gray-300 mt-1" 
-                  : isSunnyDay 
-                    ? "text-amber-900 mt-1" 
-                    : "text-gray-600 mt-1"
-              }>
-                {location ? `Weather in ${location.name}, ${location.country}` : 'Your Local Weather'}
-              </p>
-            </div>
-            
-            <div className="mt-4 sm:mt-0">
-              <form onSubmit={searchLocation} className="flex">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search city..."
-                  className={`w-full sm:w-auto px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500
-                    ${isDarkMode
-                      ? 'bg-gray-800/80 border-gray-700 text-white'
-                      : isSunnyDay
-                        ? 'border bg-white/80 text-gray-800'
-                        : 'border bg-white text-gray-800'
-                    }`}
-                />
+
+      <div className={`relative min-h-screen overflow-hidden bg-gradient-to-b ${gradientClass}`}>
+        {/* Sun effect for sunny weather */}
+        {renderSunEffect()}
+        
+        {/* Night sky with stars - only renders in night mode */}
+        <div className="star-container fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+          {renderStars()}
+        </div>
+        
+        {/* Animated clouds background */}
+        <div className="cloud-container fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+          {renderClouds()}
+        </div>
+        
+        {/* Main content with proper z-index to be above stars and clouds */}
+        <div className="relative z-10 p-4 sm:p-6">
+          <header className="max-w-6xl mx-auto mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+              <div>
+                <h1 className={`text-3xl sm:text-4xl font-bold ${
+                  isDarkMode 
+                    ? 'text-white' 
+                    : isSunnyDay 
+                      ? 'bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-yellow-500'
+                      : 'bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-400'
+                }`}>
+                  AtmoSense
+                </h1>
+                <p className={
+                  isDarkMode 
+                    ? "text-gray-300 mt-1" 
+                    : isSunnyDay 
+                      ? "text-amber-900 mt-1" 
+                      : "text-gray-600 mt-1"
+                }>
+                  {location ? `Weather in ${location.name}, ${location.country}` : 'Your Local Weather'}
+                </p>
+              </div>
+              
+              <div className="mt-4 sm:mt-0">
+                <form onSubmit={searchLocation} className="flex">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search city..."
+                    className={`w-full sm:w-auto px-4 py-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500
+                      ${isDarkMode
+                        ? 'bg-gray-800/80 border-gray-700 text-white'
+                        : isSunnyDay
+                          ? 'border bg-white/80 text-gray-800'
+                          : 'border bg-white text-gray-800'
+                      }`}
+                  />
+                  <button 
+                    type="submit"
+                    className={`${isSunnyDay ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-2 rounded-r-lg`}
+                  >
+                    <Search fontSize="small" />
+                  </button>
+                </form>
                 <button 
-                  type="submit"
-                  className={`${isSunnyDay ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-2 rounded-r-lg`}
+                  onClick={() => {
+                    locationFetched.current = false;
+                    getUserLocation();
+                  }}
+                  className={`flex items-center text-sm mt-2
+                    ${isDarkMode 
+                      ? 'text-gray-300 hover:text-blue-400' 
+                      : isSunnyDay
+                        ? 'text-amber-900 hover:text-amber-700'
+                        : 'text-gray-600 hover:text-blue-600'
+                    }`}
                 >
-                  <Search fontSize="small" />
+                  <LocationOn fontSize="small" className="mr-1" />
+                  Use my location
+                  <Refresh fontSize="small" className="ml-1" />
                 </button>
-              </form>
-              <button 
-                onClick={getUserLocation}
-                className={`flex items-center text-sm mt-2
-                  ${isDarkMode 
-                    ? 'text-gray-300 hover:text-blue-400' 
-                    : isSunnyDay
-                      ? 'text-amber-900 hover:text-amber-700'
-                      : 'text-gray-600 hover:text-blue-600'
-                  }`}
-              >
-                <LocationOn fontSize="small" className="mr-1" />
-                Use my location
-                <Refresh fontSize="small" className="ml-1" />
-              </button>
-            </div>
-          </div>
-        </header>
-        
-        <main className="max-w-6xl mx-auto">
-          {weather && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1">
-                <WeatherCard weather={weather} />
-              </div>
-              <div className="lg:col-span-2">
-                {coordinates && <ForecastSection lat={coordinates.lat} lon={coordinates.lon} />}
               </div>
             </div>
-          )}
-        </main>
-        
-        <footer className="max-w-6xl mx-auto mt-8 text-center text-sm pb-4" 
-          style={{ 
-            color: isDarkMode 
-              ? 'rgba(255,255,255,0.5)' 
-              : isSunnyDay 
-                ? 'rgba(146,64,14,0.8)' 
-                : 'rgba(75,85,99,0.8)' 
-          }}>
-        </footer>
+          </header>
+          
+          <main className="max-w-6xl mx-auto">
+            {weather && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1">
+                  <WeatherCard weather={weather} />
+                </div>
+                <div className="lg:col-span-2">
+                  {coordinates && <ForecastSection lat={coordinates.lat} lon={coordinates.lon} />}
+                </div>
+              </div>
+            )}
+          </main>
+          
+          <footer className="max-w-6xl mx-auto mt-8 text-center text-sm pb-4" 
+            style={{ 
+              color: isDarkMode 
+                ? 'rgba(255,255,255,0.5)' 
+                : isSunnyDay 
+                  ? 'rgba(146,64,14,0.8)' 
+                  : 'rgba(75,85,99,0.8)' 
+            }}>
+          </footer>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
