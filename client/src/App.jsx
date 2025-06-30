@@ -5,6 +5,8 @@ import Box from '@mui/material/Box';
 import Home from './pages/home';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import WeatherMaps from './components/Weathermaps';
+import About from './components/About';
 
 const theme = createTheme({
   palette: {
@@ -30,7 +32,6 @@ const theme = createTheme({
 export default function App() {
   const handleSearch = (query) => {
     console.log('Search query:', query);
-    // Add your search logic here
   };
 
   return (
@@ -43,10 +44,11 @@ export default function App() {
           minHeight: '100vh' 
         }}>
           <Header onSearch={handleSearch} />
-          {/* Add a container with padding-top to prevent content from being hidden under the fixed header */}
           <Box component="main" className="pt-20" sx={{ flexGrow: 1 }}>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/weather-maps" element={<WeatherMaps />} />
+              <Route path="/about" element={<About />} />
             </Routes>
           </Box>
           <Footer />
