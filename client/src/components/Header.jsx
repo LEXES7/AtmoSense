@@ -5,45 +5,28 @@ import {
   Brightness2,
   Menu as MenuIcon, 
   Close as CloseIcon,
-  Search as SearchIcon,
-  Settings as SettingsIcon,
-  Notifications as NotificationsIcon,
-  LocationOn,
   Map as MapIcon
 } from '@mui/icons-material';
 
-const Header = ({ onSearch }) => {
+const Header = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
 
-  // Toggle dark mode
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     
-    // Apply dark mode to document
     if (newDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
     
-    // Save preference to localStorage
     localStorage.setItem('darkMode', newDarkMode);
   };
 
-  // Handle search submission
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (onSearch && searchQuery.trim()) {
-      onSearch(searchQuery);
-    }
-  };
-
-  // Check if page is scrolled for navbar styling
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -51,7 +34,6 @@ const Header = ({ onSearch }) => {
 
     window.addEventListener('scroll', handleScroll);
     
-    // Check for saved dark mode preference
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     setDarkMode(savedDarkMode);
     if (savedDarkMode) {
@@ -63,7 +45,6 @@ const Header = ({ onSearch }) => {
     };
   }, []);
 
-  // Helper function to check if a link is active
   const isActiveLink = (path) => {
     return location.pathname === path;
   };
@@ -75,7 +56,6 @@ const Header = ({ onSearch }) => {
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center py-4">
-          {/* Logo and brand */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
               <WbSunny className="h-8 w-8 text-yellow-500" />
@@ -85,7 +65,6 @@ const Header = ({ onSearch }) => {
             </Link>
           </div>
 
-          {/* Desktop navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link 
               to="/" 
@@ -121,21 +100,7 @@ const Header = ({ onSearch }) => {
             </Link>
           </nav>
 
-          {/* Desktop right section */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Search */}
-            <form onSubmit={handleSearch} className="relative">
-              <input
-                type="text"
-                placeholder="Search location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 dark:text-white text-sm"
-              />
-              <SearchIcon className="absolute left-3 top-2.5 text-gray-400 dark:text-gray-500" fontSize="small" />
-            </form>
-          
-            {/* Dark mode toggle */}
             <button 
               onClick={toggleDarkMode}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors duration-200"
@@ -149,7 +114,6 @@ const Header = ({ onSearch }) => {
             </button>
           </div>
 
-          {/* Mobile menu button */}
           <div className="md:hidden">
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -161,7 +125,6 @@ const Header = ({ onSearch }) => {
         </div>
       </div>
 
-      {/* Mobile menu, conditionally shown */}
       <div className={`md:hidden transition-all duration-300 ${
         isMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
       } bg-white dark:bg-gray-900 shadow-lg`}>
@@ -201,20 +164,6 @@ const Header = ({ onSearch }) => {
           >
             About
           </Link>
-          
-          {/* Mobile search */}
-          <form onSubmit={handleSearch} className="px-3 py-2">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-              />
-              <SearchIcon className="absolute left-3 top-2.5 text-gray-400 dark:text-gray-500" fontSize="small" />
-            </div>
-          </form>
           
           <div className="flex items-center justify-between px-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button 
