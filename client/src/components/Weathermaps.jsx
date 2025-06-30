@@ -323,13 +323,10 @@ const WeatherMaps = () => {
     setIsDragging(false);
   }, []);
 
-  // Fixed zoom functions to use integers only
   const zoomIn = () => setZoomLevel(prev => Math.min(12, Math.floor(prev) + 1));
   const zoomOut = () => setZoomLevel(prev => Math.max(2, Math.floor(prev) - 1));
 
-  // Fixed wheel zoom - removed from React synthetic event system
   const handleWheel = useCallback((e) => {
-    // Don't use preventDefault here - handle it with native event listener
     const delta = e.deltaY > 0 ? -1 : 1; // Only integer increments
     setZoomLevel(prev => Math.max(2, Math.min(12, Math.floor(prev) + delta)));
   }, []);
@@ -339,7 +336,6 @@ const WeatherMaps = () => {
     zoomIn();
   }, []);
 
-  // Fixed event listeners to avoid passive event issues
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
       if (isDragging) {
@@ -509,12 +505,7 @@ const WeatherMaps = () => {
                       <p className="text-white/80 text-sm">{currentLayer?.description}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-white/80 text-sm">Current View</div>
-                    <div className="text-white font-mono text-lg">
-                      {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}
-                    </div>
-                  </div>
+                 
                 </div>
               </div>
 
@@ -645,7 +636,6 @@ const WeatherMaps = () => {
               </div>
             </div>
 
-            {/* Fixed horizontal controls */}
             <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-6 mb-12">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 items-center">
                 
