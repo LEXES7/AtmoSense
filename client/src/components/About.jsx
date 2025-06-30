@@ -187,7 +187,7 @@ export default function About() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <School className="text-blue-200" />
-                  <span className="text-lg">Computer Science Student & Full-Stack Developer</span>
+                  <span className="text-lg">A Creative innovator & A Full Stack Developer</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Work className="text-blue-200" />
@@ -209,7 +209,7 @@ export default function About() {
             <div className="text-center lg:text-right">
               <div className="inline-block bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6">
                 <div className="text-4xl md:text-5xl font-bold mb-2">Sachintha Bhashitha</div>
-                <div className="text-blue-200 text-lg">Full-Stack Developer</div>
+                <div className="text-blue-200 text-lg">Developer</div>
               </div>
               
               {/* Social Links */}
