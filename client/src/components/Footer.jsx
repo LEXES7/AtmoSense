@@ -71,11 +71,7 @@ const Footer = () => {
           </Box>
         </Box>
         
-        <Box sx={{ textAlign: 'center', mt: 2 }}>
-          <Typography variant="caption" color="text.secondary">
-            This project is for educational purposes only.
-          </Typography>
-        </Box>
+      
       </Container>
     </Box>
   );

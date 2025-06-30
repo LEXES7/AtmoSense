@@ -16,7 +16,7 @@ import {
 
 const WeatherCard = ({ weather }) => {
   const getWeatherIcon = (weatherId, large = false) => {
-    const iconSize = large ? "text-8xl" : "text-4xl"; // Increased icon sizes
+    const iconSize = large ? "text-6xl md:text-8xl" : "text-3xl md:text-4xl"; 
     const iconClass = `${iconSize} ${getWeatherColor(weatherId)}`;
 
     if (weatherId >= 200 && weatherId < 300) return <Thunderstorm className={iconClass} />;
@@ -63,7 +63,7 @@ const WeatherCard = ({ weather }) => {
   const renderWindCompass = () => {
     const windDegree = weather.wind.deg;
     const windSpeed = Math.round(weather.wind.speed * 3.6); // Convert to km/h
-    const compassSize = 160; // Increased size of compass in pixels
+    const compassSize = 160; // Base size - will be responsive
     
     // Determine color intensity based on wind speed
     const getWindSpeedColor = () => {
@@ -74,13 +74,21 @@ const WeatherCard = ({ weather }) => {
     };
     
     return (
-      <div className="w-full my-8 bg-white/10 rounded-xl p-6">
+      <div className="w-full my-6 md:my-8 bg-white/10 rounded-xl p-4 md:p-6">
         <div className="text-center mb-4">
-          <span className="text-xl font-medium">Wind Direction </span>
+          <span className="text-lg md:text-xl font-medium">Wind Direction</span>
         </div>
         
         <div className="compass-container flex flex-col items-center justify-center mx-auto">
-          <div className="relative" style={{ width: `${compassSize}px`, height: `${compassSize}px` }}>
+          <div 
+            className="relative mx-auto"
+            style={{ 
+              width: `${compassSize}px`, 
+              height: `${compassSize}px`,
+              maxWidth: '90vw',
+              maxHeight: '90vw'
+            }}
+          >
             {/* Compass background */}
             <div 
               className="absolute inset-0 rounded-full border-2 border-white/30 bg-gradient-to-br from-white/10 to-white/5"
@@ -93,10 +101,12 @@ const WeatherCard = ({ weather }) => {
             {['N', 'E', 'S', 'W'].map((dir, i) => (
               <div 
                 key={dir} 
-                className="absolute text-white font-bold text-lg"
+                className="absolute text-white font-bold text-base md:text-lg flex items-center justify-center"
                 style={{
-                  top: dir === 'N' ? '8px' : dir === 'S' ? `${compassSize - 30}px` : `${compassSize/2 - 10}px`,
-                  left: dir === 'E' ? `${compassSize - 30}px` : dir === 'W' ? '8px' : `${compassSize/2 - 8}px`,
+                  top: dir === 'N' ? '8px' : dir === 'S' ? `${compassSize - 30}px` : `${compassSize/2 - 12}px`,
+                  left: dir === 'E' ? `${compassSize - 30}px` : dir === 'W' ? '8px' : `${compassSize/2 - 12}px`,
+                  width: '24px',
+                  height: '24px',
                   opacity: 0.8,
                   zIndex: 2
                 }}
@@ -116,10 +126,12 @@ const WeatherCard = ({ weather }) => {
               return (
                 <div 
                   key={dir} 
-                  className="absolute text-white text-sm"
+                  className="absolute text-white text-xs md:text-sm flex items-center justify-center"
                   style={{ 
-                    left: `${x - 10}px`, 
-                    top: `${y - 10}px`,
+                    left: `${x - 12}px`, 
+                    top: `${y - 12}px`,
+                    width: '24px',
+                    height: '24px',
                     opacity: 0.7
                   }}
                 >
@@ -146,20 +158,20 @@ const WeatherCard = ({ weather }) => {
               }}
             >
               <div 
-                className={`w-8 h-32 bg-gradient-to-t ${getWindSpeedColor()} rounded-full absolute`}
+                className={`w-6 h-24 md:w-8 md:h-32 bg-gradient-to-t ${getWindSpeedColor()} rounded-full absolute`}
                 style={{ 
                   bottom: '50%',
-                  left: 'calc(50% - 16px)',
+                  left: 'calc(50% - 12px)',
                   clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
                   filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
                   transformOrigin: "50% 100%"
                 }}
               />
               <div
-                className="absolute rounded-full bg-white w-8 h-8"
+                className="absolute rounded-full bg-white w-6 h-6 md:w-8 md:h-8"
                 style={{
-                  bottom: 'calc(50% - 16px)',
-                  left: 'calc(50% - 16px)',
+                  bottom: 'calc(50% - 12px)',
+                  left: 'calc(50% - 12px)',
                   boxShadow: "0 0 10px rgba(255,255,255,0.8)",
                   zIndex: 3
                 }}
@@ -181,11 +193,11 @@ const WeatherCard = ({ weather }) => {
           </div>
           
           {/* Wind info */}
-          <div className="mt-4 text-center bg-white/20 rounded-md py-2 px-4 backdrop-blur-sm w-full max-w-xs">
-            <div className="text-md font-medium">
+          <div className="mt-4 text-center bg-white/20 rounded-md py-2 px-4 backdrop-blur-sm w-full max-w-xs mx-auto">
+            <div className="text-sm md:text-base font-medium">
               <span className="font-bold">{getWindDirection(windDegree)}</span> • {windDegree}° • {windSpeed} km/h
             </div>
-            <div className="text-sm mt-1 opacity-80">
+            <div className="text-xs md:text-sm mt-1 opacity-80">
               {windSpeed < 10 ? 'Light breeze' : windSpeed < 20 ? 'Moderate wind' : windSpeed < 30 ? 'Strong wind' : 'High wind'}
             </div>
           </div>
@@ -196,118 +208,126 @@ const WeatherCard = ({ weather }) => {
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Main Weather Card - Enlarged and Enhanced */}
-      <div className={`flex-1 p-8 rounded-2xl shadow-xl mb-6 text-white ${getBgGradient(weatherId)}`}>
-        {/* Top Section - Enlarged */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-5xl font-bold">
+      {/* Main Weather Card - Responsive padding and spacing */}
+      <div className={`flex-1 p-4 md:p-8 rounded-2xl shadow-xl mb-6 text-white ${getBgGradient(weatherId)}`}>
+        {/* Top Section - Responsive layout */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start space-y-4 md:space-y-0">
+          <div className="text-center md:text-left">
+            <h2 className="text-4xl md:text-5xl font-bold">
               {Math.round(weather.main.temp)}°C
             </h2>
-            <div className="flex items-center space-x-2 mt-3">
-              <span className="text-2xl capitalize">{weather.weather[0].description}</span>
+            <div className="flex items-center justify-center md:justify-start space-x-2 mt-2 md:mt-3">
+              <span className="text-lg md:text-2xl capitalize">{weather.weather[0].description}</span>
             </div>
-            <p className="text-xl mt-2 opacity-90">Feels like {Math.round(weather.main.feels_like)}°C</p>
+            <p className="text-base md:text-xl mt-2 opacity-90">Feels like {Math.round(weather.main.feels_like)}°C</p>
           </div>
           <div className="flex flex-col items-center">
             {getWeatherIcon(weatherId, true)}
-            <span className="text-lg mt-3 opacity-80">{new Date().toLocaleDateString([], {weekday: 'long'})}</span>
+            <span className="text-sm md:text-lg mt-2 md:mt-3 opacity-80 text-center">
+              {new Date().toLocaleDateString([], {weekday: 'long'})}
+            </span>
           </div>
         </div>
 
-        {/* Middle Section - Stats with Larger Elements */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-12">
-          <div className="flex flex-col items-center bg-white/15 p-5 rounded-xl transform transition-all hover:scale-105">
-            <WaterDrop className="text-3xl" />
-            <span className="text-md mt-2 opacity-80">Humidity</span>
-            <span className="text-xl font-semibold">{weather.main.humidity}%</span>
+        {/* Middle Section - Responsive grid with consistent alignment */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mt-8 md:mt-12">
+          <div className="flex flex-col items-center bg-white/15 p-3 md:p-5 rounded-xl transform transition-all hover:scale-105 text-center">
+            <WaterDrop className="text-2xl md:text-3xl" />
+            <span className="text-xs md:text-sm mt-1 md:mt-2 opacity-80">Humidity</span>
+            <span className="text-sm md:text-xl font-semibold">{weather.main.humidity}%</span>
           </div>
           
-          <div className="flex flex-col items-center bg-white/15 p-5 rounded-xl transform transition-all hover:scale-105">
-            <Air className="text-3xl" />
-            <span className="text-md mt-2 opacity-80">Wind</span>
-            <span className="text-xl font-semibold">{Math.round(weather.wind.speed * 3.6)} km/h</span>
+          <div className="flex flex-col items-center bg-white/15 p-3 md:p-5 rounded-xl transform transition-all hover:scale-105 text-center">
+            <Air className="text-2xl md:text-3xl" />
+            <span className="text-xs md:text-sm mt-1 md:mt-2 opacity-80">Wind</span>
+            <span className="text-sm md:text-xl font-semibold">{Math.round(weather.wind.speed * 3.6)} km/h</span>
           </div>
           
-          <div className="flex flex-col items-center bg-white/15 p-5 rounded-xl transform transition-all hover:scale-105">
-            <Visibility className="text-3xl" />
-            <span className="text-md mt-2 opacity-80">Visibility</span>
-            <span className="text-xl font-semibold">{(weather.visibility / 1000).toFixed(1)} km</span>
+          <div className="flex flex-col items-center bg-white/15 p-3 md:p-5 rounded-xl transform transition-all hover:scale-105 text-center">
+            <Visibility className="text-2xl md:text-3xl" />
+            <span className="text-xs md:text-sm mt-1 md:mt-2 opacity-80">Visibility</span>
+            <span className="text-sm md:text-xl font-semibold">{(weather.visibility / 1000).toFixed(1)} km</span>
           </div>
           
-          <div className="flex flex-col items-center bg-white/15 p-5 rounded-xl transform transition-all hover:scale-105">
-            <ExploreOutlined className="text-3xl" />
-            <span className="text-md mt-2 opacity-80">Pressure</span>
-            <span className="text-xl font-semibold">{weather.main.pressure} hPa</span>
+          <div className="flex flex-col items-center bg-white/15 p-3 md:p-5 rounded-xl transform transition-all hover:scale-105 text-center">
+            <ExploreOutlined className="text-2xl md:text-3xl" />
+            <span className="text-xs md:text-sm mt-1 md:mt-2 opacity-80">Pressure</span>
+            <span className="text-sm md:text-xl font-semibold">{weather.main.pressure} hPa</span>
           </div>
         </div>
         
-        {/* Wind Direction Compass - Static version without animations */}
+        {/* Wind Direction Compass - Responsive */}
         {renderWindCompass()}
         
-        {/* Bottom Section - Improved Layout */}
-        <div className="mt-6 grid grid-cols-2 gap-8 text-md opacity-90">
-          <div className="flex items-center space-x-3 bg-white/10 p-4 rounded-xl">
-            <Schedule className="text-2xl" />
-            <div>
-              <p className="text-lg">Sunrise: {formatTime(weather.sys.sunrise)}</p>
-              <p className="text-lg">Sunset: {formatTime(weather.sys.sunset)}</p>
+        {/* Bottom Section - Responsive layout */}
+        <div className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 text-sm md:text-base opacity-90">
+          <div className="flex items-center justify-center md:justify-start space-x-3 bg-white/10 p-3 md:p-4 rounded-xl">
+            <Schedule className="text-xl md:text-2xl flex-shrink-0" />
+            <div className="text-center md:text-left">
+              <p className="text-sm md:text-lg">Sunrise: {formatTime(weather.sys.sunrise)}</p>
+              <p className="text-sm md:text-lg">Sunset: {formatTime(weather.sys.sunset)}</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3 bg-white/10 p-4 rounded-xl">
-            <CompareArrows className="text-2xl" />
-            <div>
-              <p className="text-lg">Min: {Math.round(weather.main.temp_min)}°C</p>
-              <p className="text-lg">Max: {Math.round(weather.main.temp_max)}°C</p>
+          <div className="flex items-center justify-center md:justify-start space-x-3 bg-white/10 p-3 md:p-4 rounded-xl">
+            <CompareArrows className="text-xl md:text-2xl flex-shrink-0" />
+            <div className="text-center md:text-left">
+              <p className="text-sm md:text-lg">Min: {Math.round(weather.main.temp_min)}°C</p>
+              <p className="text-sm md:text-lg">Max: {Math.round(weather.main.temp_max)}°C</p>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Secondary Info Card - Enhanced */}
-      <div className="bg-white dark:bg-slate-800 shadow-lg rounded-2xl p-6">
-        <h3 className="font-semibold text-xl text-gray-700 dark:text-gray-200 mb-4">Air Conditions</h3>
-        <div className="grid grid-cols-2 gap-6">
-          <div className="flex items-center bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl">
-            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-800 mr-4">
-              <WaterDrop className="text-blue-500 dark:text-blue-300" fontSize="large" />
+      {/* Secondary Info Card - Responsive */}
+      <div className="bg-white dark:bg-slate-800 shadow-lg rounded-2xl p-4 md:p-6">
+        <h3 className="font-semibold text-lg md:text-xl text-gray-700 dark:text-gray-200 mb-4 text-center md:text-left">
+          Air Conditions
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div className="flex items-center bg-blue-50 dark:bg-blue-900/30 p-3 md:p-4 rounded-xl">
+            <div className="p-2 md:p-3 rounded-full bg-blue-100 dark:bg-blue-800 mr-3 md:mr-4 flex-shrink-0">
+              <WaterDrop className="text-blue-500 dark:text-blue-300" fontSize="medium" />
             </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Humidity</p>
-              <p className="text-xl text-gray-700 dark:text-gray-200 font-semibold">{weather.main.humidity}%</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Humidity</p>
+              <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-semibold">
+                {weather.main.humidity}%
+              </p>
             </div>
           </div>
           
-          <div className="flex items-center bg-cyan-50 dark:bg-cyan-900/30 p-4 rounded-xl">
-            <div className="p-3 rounded-full bg-cyan-100 dark:bg-cyan-800 mr-4">
-              <Air className="text-cyan-500 dark:text-cyan-300" fontSize="large" />
+          <div className="flex items-center bg-cyan-50 dark:bg-cyan-900/30 p-3 md:p-4 rounded-xl">
+            <div className="p-2 md:p-3 rounded-full bg-cyan-100 dark:bg-cyan-800 mr-3 md:mr-4 flex-shrink-0">
+              <Air className="text-cyan-500 dark:text-cyan-300" fontSize="medium" />
             </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Pressure</p>
-              <p className="text-xl text-gray-700 dark:text-gray-200 font-semibold">{weather.main.pressure} hPa</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Pressure</p>
+              <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-semibold">
+                {weather.main.pressure} hPa
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center bg-amber-50 dark:bg-amber-900/30 p-4 rounded-xl">
-            <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-800 mr-4">
-              <Compress className="text-amber-500 dark:text-amber-300" fontSize="large" />
+          <div className="flex items-center bg-amber-50 dark:bg-amber-900/30 p-3 md:p-4 rounded-xl">
+            <div className="p-2 md:p-3 rounded-full bg-amber-100 dark:bg-amber-800 mr-3 md:mr-4 flex-shrink-0">
+              <Compress className="text-amber-500 dark:text-amber-300" fontSize="medium" />
             </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Pressure Change</p>
-              <p className="text-xl text-gray-700 dark:text-gray-200 font-semibold">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Pressure Change</p>
+              <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-semibold">
                 {weather.main.pressure > 1013 ? '+' : '-'}{Math.abs(weather.main.pressure - 1013)} hPa
               </p>
             </div>
           </div>
           
-          <div className="flex items-center bg-purple-50 dark:bg-purple-900/30 p-4 rounded-xl">
-            <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-800 mr-4">
-              <Navigation className="text-purple-500 dark:text-purple-300" fontSize="large" />
+          <div className="flex items-center bg-purple-50 dark:bg-purple-900/30 p-3 md:p-4 rounded-xl">
+            <div className="p-2 md:p-3 rounded-full bg-purple-100 dark:bg-purple-800 mr-3 md:mr-4 flex-shrink-0">
+              <Navigation className="text-purple-500 dark:text-purple-300" fontSize="medium" />
             </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Wind Direction</p>
-              <p className="text-xl text-gray-700 dark:text-gray-200 font-semibold">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Wind Direction</p>
+              <p className="text-lg md:text-xl text-gray-700 dark:text-gray-200 font-semibold">
                 {weather.wind.deg}° {getWindDirection(weather.wind.deg)}
               </p>
             </div>
