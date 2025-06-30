@@ -273,7 +273,7 @@ export default function About() {
           
           <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
             <p className="text-gray-500 dark:text-gray-400 text-sm">
-              Made with ❤️ by Sachintha Bhashitha • © 2024 AtmoSense
+              Made with ❤️ by Sachintha Bhashitha • © 2025 AtmoSense
             </p>
           </div>
         </div>
